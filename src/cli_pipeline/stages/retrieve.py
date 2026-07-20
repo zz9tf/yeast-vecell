@@ -33,15 +33,14 @@ def load_data(csv_file: str, readout_col: str = "gene") -> Dict[str, List[dict]]
     """Load (pert, readout, label, split). ``readout_col`` is the readout column
     name (Task1 = 'gene'; Task2 = 'context'); stored internally under 'gene'."""
     df = pd.read_csv(csv_file)
+    # vectorized (Task2 CSVs are millions of rows; iterrows is far too slow).
+    perts = df["pert"].astype(str).tolist()
+    genes = df[readout_col].astype(str).tolist()
+    labels = df["label"].astype(int).tolist()
+    splits = df["split"].astype(str).tolist()
     data: Dict[str, List[dict]] = {"train": [], "test": []}
-    for _, row in df.iterrows():
-        item = {
-            "pert": str(row["pert"]),
-            "gene": str(row[readout_col]),
-            "label": int(row["label"]),
-            "split": row["split"],
-        }
-        data.setdefault(item["split"], []).append(item)
+    for p, g, lab, s in zip(perts, genes, labels, splits):
+        data.setdefault(s, []).append({"pert": p, "gene": g, "label": lab, "split": s})
     return data
 
 
