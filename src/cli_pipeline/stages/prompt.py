@@ -19,6 +19,11 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
+try:  # `utils` is a sibling package when run from src/cli_pipeline (via cli.py)
+    from utils.alias import load_alias, display_name
+except ImportError:  # pragma: no cover - allow importing as a package
+    from cli_pipeline.utils.alias import load_alias, display_name
+
 
 def load_template_vars(template_file: str) -> Dict[str, Any]:
     with open(template_file, "r", encoding="utf-8") as f:
@@ -78,7 +83,7 @@ def _label_to_result(label: int, choices: List[str]) -> Optional[str]:
 
 def format_observations(pairs: List[List], pert_desc: Dict[str, str],
                         gene_desc: Dict[str, str], choices: Optional[List[str]],
-                        max_examples: int = 10) -> str:
+                        alias: Optional[Dict] = None, max_examples: int = 10) -> str:
     """Build the few-shot "Examples" block using the pairs' TRUE labels."""
     if not pairs:
         return "No similar experimental observations available for context."
@@ -88,11 +93,13 @@ def format_observations(pairs: List[List], pert_desc: Dict[str, str],
         # pairs are [pert, gene, label]; tolerate a legacy [pert, gene].
         pert2, gene2 = pair[0], pair[1]
         label = pair[2] if len(pair) > 2 else None
+        # look up descriptions by the raw (ORF) key; show a readable name.
         pdesc = get_description(pert2, pert_desc, "Perturbagen")
         gdesc = get_description(gene2, gene_desc, "Gene")
+        pert2_show = display_name(pert2, alias) if alias else pert2
         obs_text = (
             f"Example {i + 1}:\n"
-            f"- Perturbagen (deletion): {pert2}\n"
+            f"- Perturbagen (deletion): {pert2_show}\n"
             f"- Readout gene (ORF): {gene2}\n"
             f"- Perturbagen Description: {pdesc}\n"
             f"- Readout Gene Description: {gdesc}"
@@ -117,7 +124,8 @@ def generate_prompts(*, task: str, retrieval_json: str,
                      pert_desc_json: Optional[str] = None,
                      template_file: Optional[str] = None, output_file: str,
                      context_idx: Optional[int] = None,
-                     max_cases: Optional[int] = None, seed: int = 42) -> None:
+                     max_cases: Optional[int] = None, seed: int = 42,
+                     alias_path: Optional[str] = None) -> None:
     import random
     random.seed(seed)
 
@@ -126,6 +134,9 @@ def generate_prompts(*, task: str, retrieval_json: str,
     # In yeast one description set serves both roles (perturbagen == deleted gene,
     # readout == ORF); default the perturbagen map to the gene map if unset.
     pert_desc = load_json(pert_desc_json) if pert_desc_json else gene_desc
+    # Alias map is only for human-readable display ('STANDARD (ORF)'); all lookups
+    # still use the raw ORF key (perturbagens are ORF-normalized in prepare).
+    alias = load_alias(alias_path) if alias_path else {}
 
     if template_file is None:
         template_file = _default_template_path(task)
@@ -170,10 +181,12 @@ def generate_prompts(*, task: str, retrieval_json: str,
                 idx = context_idx
             context_short, context_desc = contexts[idx]
 
-            obs = format_observations(retrieved_pairs, pert_desc, gene_desc, choices)
+            obs = format_observations(retrieved_pairs, pert_desc, gene_desc,
+                                      choices, alias)
 
+            pert_show = display_name(pert, alias) if alias else pert
             filled = prompt_template.format(
-                pert=pert,
+                pert=pert_show,
                 gene=gene,
                 pert_desc=get_description(pert, pert_desc, "Perturbagen"),
                 gene_desc=get_description(gene, gene_desc, "Gene"),
@@ -182,7 +195,7 @@ def generate_prompts(*, task: str, retrieval_json: str,
                 obs=obs,
             )
 
-            f.write(f"=== Prompt {i + 1} ({pert} | {gene}) ===\n")
+            f.write(f"=== Prompt {i + 1} ({pert_show} | {gene}) ===\n")
             f.write(filled)
             f.write("\n\n" + "=" * 80 + "\n\n")
 

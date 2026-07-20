@@ -30,6 +30,7 @@ DEFAULT_DELETEOME = os.path.join(
 DEFAULT_PERT_SIM = os.path.join(REPO_ROOT, "data", "knowledge", "perturbagen_similarity.json")
 DEFAULT_GENE_SIM = os.path.join(REPO_ROOT, "data", "knowledge", "results_close_gene.json")
 DEFAULT_GENE_DESC = os.path.join(REPO_ROOT, "data", "knowledge", "gene_desc.json")
+DEFAULT_ALIAS = os.path.join(REPO_ROOT, "data", "knowledge", "gene_alias.json")
 
 
 def _add_prepare_args(p: argparse.ArgumentParser) -> None:
@@ -49,6 +50,10 @@ def _add_prepare_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--max-perts", type=int, default=None,
                    help="Optional cap on #perturbagens (subset for speed/smoke tests)")
+    p.add_argument("--alias", default=DEFAULT_ALIAS,
+                   help="Gene alias JSON to normalize perturbagens (standard name) -> "
+                        "systematic ORF so they match the ORF-keyed knowledge assets. "
+                        "Pass '' to disable normalization.")
 
 
 def _add_retrieve_args(p: argparse.ArgumentParser) -> None:
@@ -75,6 +80,9 @@ def _add_prompt_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--pert-desc", default=None,
                    help="Perturbagen description JSON (defaults to --gene-desc)")
     p.add_argument("--template", default=None, help="Prompt template file (optional)")
+    p.add_argument("--alias", default=DEFAULT_ALIAS,
+                   help="Gene alias JSON, used to show perturbagens as 'STANDARD (ORF)' "
+                        "for readability. Pass '' to disable.")
     p.add_argument("--out", required=True, help="Output prompts text file")
     p.add_argument("--context-idx", type=int, default=None,
                    help="Index into the template `contexts` list (default: random per case)")
@@ -157,6 +165,7 @@ def main(argv: list) -> int:
             input_path=args.input, output_dir=args.out_dir, name=args.name,
             lfc=args.lfc, fdr=args.fdr, pval_neg=args.pval_neg, n_neg=args.n_neg,
             train_fraction=args.train_fraction, seed=args.seed, max_perts=args.max_perts,
+            alias_path=(args.alias or None),
         )
         return 0
 
@@ -175,6 +184,7 @@ def main(argv: list) -> int:
             gene_desc_json=args.gene_desc, pert_desc_json=args.pert_desc,
             template_file=args.template, output_file=args.out,
             context_idx=args.context_idx, max_cases=args.max_cases, seed=args.seed,
+            alias_path=(args.alias or None),
         )
         return 0
 

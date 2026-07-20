@@ -31,6 +31,11 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+try:  # `utils` is a sibling package when run from src/cli_pipeline (via cli.py)
+    from utils.alias import load_alias, to_systematic
+except ImportError:  # pragma: no cover - allow importing as a package
+    from cli_pipeline.utils.alias import load_alias, to_systematic
+
 # The 3 internal control comparisons (matA background, BY4743, YPD) that must be
 # skipped. They are identified structurally: a *deletion* strain's left-hand-side
 # token (before " vs") always contains "-del"; the control comparisons never do
@@ -87,6 +92,7 @@ def process_deleteome(
     train_fraction: float = 0.3,
     seed: int = 42,
     max_perts: Optional[int] = None,
+    alias_path: Optional[str] = None,
 ) -> None:
     """Build ``{name}_DE.csv`` and ``{name}_DIR.csv`` from the Deleteome matrix.
 
@@ -101,23 +107,45 @@ def process_deleteome(
     df, condition_names = _read_deleteome(input_path)
     n_rows = len(df)
     print(f"Loaded {n_rows} readout genes x {len(condition_names)} conditions")
-    print("IDENTIFIER NAMESPACES: pert = lowercase standard gene name "
-          "(e.g. 'swd1'); readout gene = systematic ORF name (column 2, "
-          "e.g. 'YFL039C'). Alias unification is a separate later step.")
+    alias = load_alias(alias_path)
+    if alias:
+        print(f"IDENTIFIER: perturbagens normalized to systematic ORF via alias map "
+              f"({alias_path}); readout gene = systematic ORF (column 2).")
+    else:
+        print("IDENTIFIER: no alias map -> perturbagen kept as lowercase standard "
+              "name (e.g. 'swd1'); readout gene = systematic ORF (e.g. 'YFL039C').")
 
     systematic_names = df.iloc[:, 1].astype(str).values  # readout gene = ORF
 
     # ---- Identify deletion perturbagens (skip the 3 controls) --------------
+    # With an alias map, the perturbagen is normalized to its systematic ORF so it
+    # matches the ORF-keyed knowledge assets (pert-sim / descriptions). Names that
+    # don't resolve (or no map at all) fall back to the lowercase standard name.
     deletion_conditions: List[Tuple[int, str, str]] = []  # (col_index, cond, pert)
     controls: List[str] = []
+    n_unresolved = 0
+    unresolved_examples: List[str] = []
     for i, cond in enumerate(condition_names):
         if _is_control(cond):
             controls.append(cond)
             continue
         m_col = 3 + 3 * i  # M is the first of each condition's 3 columns
-        deletion_conditions.append((m_col, cond, parse_perturbagen(cond)))
+        std = parse_perturbagen(cond)
+        orf = to_systematic(std, alias) if alias else None
+        if orf is None:
+            orf = std
+            if alias:
+                n_unresolved += 1
+                if len(unresolved_examples) < 10:
+                    unresolved_examples.append(std)
+        deletion_conditions.append((m_col, cond, orf))
     print(f"Deletion perturbagens: {len(deletion_conditions)} | "
           f"skipped controls: {controls}")
+    if alias:
+        print(f"Perturbagen -> ORF: resolved "
+              f"{len(deletion_conditions) - n_unresolved}/{len(deletion_conditions)}; "
+              f"unresolved (kept as-is): {n_unresolved}"
+              + (f" e.g. {unresolved_examples}" if unresolved_examples else ""))
 
     if max_perts is not None and max_perts < len(deletion_conditions):
         deletion_conditions = deletion_conditions[:max_perts]
