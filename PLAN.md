@@ -127,7 +127,8 @@
 
 **Phase 4 — `prompt` + `infer`**
 - `prompt.py`/`infer.py`/`infer_api.py` 几乎原样复用（模板 + JSON 换成 yeast 后它们与数据无关）。
-- 推理：先用 API 模型迭代；本地 HF（Llama-3.1-8B / Qwen）保成本/复现。
+- 推理用对齐 VCWorld 的那套模型（Qwen2.5-7B/14B、Qwen3-4B、Llama3.1-8B、Gemini-2.5-Flash）
+  —— 具体清单/路径/参数见 **Part C.5**。
 
 **Phase 5 — 评测 & baseline**
 - 解析器：最终行 → 标签；算 Accuracy / F1 / AUROC（DE）、方向准确率（DIR），按扰动子和按条件拆分。
@@ -138,6 +139,47 @@
 **Phase 6 — 扩展（可选）**
 - 把条件/胁迫做成真正的第二个轴（环境基因表达 compendium）。
 - 从二分类 DE 走向幅度/回归；从静态走向时序（IDEA）。
+
+---
+
+## Part C.5 — 模型与推理配置（对齐 VCWorld，pipeline 搭好即可直接跑分）
+
+直接复用 VCWorld 论文用的那套 backbone 模型，好处是 yeast 的分数能和论文横向对比。我们的 CLI 已经内置
+`infer`（本地 HF）和 `infer-api`（OpenAI 兼容 / OpenRouter）两条路，**不用改代码**，把 `--model` /
+`--api-model` 指到下面这些就行。
+
+| Backbone | HF 路径 / 接入方式 | 参数量 | 角色 | 论文实测(C32 acc) |
+|---|---|---|---|---|
+| **Llama-3.1-8B-Instruct** | `meta-llama/Llama-3.1-8B-Instruct`（`infer`） | 8B | 规模下限参照 | 0.37 |
+| **Qwen3-4B-Instruct-2507** | `Qwen/Qwen3-4B-Instruct-2507`（`infer`） | 4B | 轻量 | — |
+| **Qwen2.5-7B-Instruct** | `Qwen/Qwen2.5-7B-Instruct`（`infer`） | 7.6B | 主力开源 | — |
+| **Qwen2.5-14B-Instruct** | `Qwen/Qwen2.5-14B-Instruct`（`infer`） | 14B | **最强开源** | 0.65 |
+| **Gemini-2.5-Flash** | OpenRouter `google/gemini-2.5-flash`（`infer-api`） | API（"thinking"） | **最强总体** | 0.70 |
+
+**推理参数**（论文 B.4，与 CLI 默认一致，无需额外传）：`temperature=0.6`、`top_p=0.9`；输入 prompt
+统一约 **2600 tokens**；成本/延迟用 OpenRouter 监控。
+
+**论文关键结论**：性能随模型推理能力单调上升 —— Llama3-8B (0.37) → Qwen2.5-14B (0.65) →
+Gemini-2.5-Flash (0.70)；作者据此断言"这个任务吃的是推理能力，不是模式匹配"。
+→ **对我们的启示**：优先跑 **Qwen2.5-14B**（开源天花板）+ **Gemini-2.5-Flash**（总体天花板）；
+Qwen3-4B / Qwen2.5-7B / Llama3-8B 作为**规模消融**（验证 yeast 上是否复现同样的"越强越准"趋势）。
+
+**怎么跑（pipeline 搭好后）**：
+```bash
+# 开源本地（默认 temp/top_p 已对齐）
+python cli.py de infer --model Qwen/Qwen2.5-14B-Instruct \
+  --prompts out/cond_DE_prompts.txt --out out/cond_DE_pred_qwen14b.txt
+
+# Gemini via OpenRouter
+python cli.py de infer-api \
+  --api-url https://openrouter.ai/api/v1/chat/completions \
+  --api-model google/gemini-2.5-flash \
+  --prompts out/cond_DE_prompts.txt --out out/cond_DE_pred_gemini.txt
+```
+**显存**：14B bf16 约需 ≥28GB（单卡 A100 40/80G 可跑，或多卡 `--device-map auto`）；4B/7B 单卡消费级即可。
+
+> 注：论文里的 CPA / scVI / STATE / scGPT 等是**专用深度学习 baseline**（非 VCWorld 的 backbone），
+> 属于 Phase 5 的对照方法，先不纳入初始跑分。
 
 ---
 
@@ -161,7 +203,8 @@
 2. **上下文轴**：先单一参考条件（BY4741/YPD）？还是一上来就多条件/胁迫？
 3. **数据源**：直接用 Deleteome？还是接你 `yeast-rank-cross-lab` 里已有的矩阵？
    （那些矩阵装的是扰动-响应还是表型？）
-4. **推理预算**：先用 API 模型（快迭代）还是本地 HF（复现/成本）跑第一批？
+4. **推理预算**：模型清单已定（Part C.5，对齐 VCWorld）。待你确认第一批优先级 —— 建议
+   Qwen2.5-14B（本地）+ Gemini-2.5-Flash（OpenRouter API，需 key）；小模型做规模消融。
 
 ---
 
