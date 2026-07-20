@@ -1,12 +1,19 @@
-# Large raw data — not committed (download via scripts / see docs/data_sources.md)
-data/perturbation/*.txt
-data/perturbation/*.csv
-data/perturbation/*.zip
-data/perturbation/*.gz
-data/knowledge/*.txt
-data/knowledge/*.json
-data/knowledge/*.gz
-data/knowledge/*.zip
+# Large raw data / built knowledge — NOT committed (rebuild via src/knowledge, src/task2; see docs/)
+# Recursive so subdirs (data/task2/, data/perturbation/hillenmeyer2008/, ...) are covered too.
+data/perturbation/**
+data/knowledge/**
+data/task2/**
+data/**/*.txt
+data/**/*.csv
+data/**/*.tsv
+data/**/*.json
+data/**/*.gz
+data/**/*.zip
+data/**/*.pkl
+data/**/*.h5
+data/**/*.xlsx
+# keep the placeholder files so empty dirs stay in the repo
+!data/**/.gitkeep
 
 # Python
 __pycache__/

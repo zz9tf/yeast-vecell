@@ -16,14 +16,15 @@
 
 | 任务 | 数据 | 扰动子 | 读出/上下文 | #test | 正例率 | 状态 |
 |---|---|---|---|---|---|---|
-| **T1a** 表达-DE（是否差异表达 Yes/No） | Deleteome | 1484 敲除(小写标准名) | 6112 ORF | ⬜ | ~15.3% | ⬜ 待跑 |
-| **T1b** 表达-DIR（升/降 Inc/Dec） | Deleteome(DE 命中) | 1414 | 4459 ORF | ⬜ | ⬜ | ⬜ |
-| **T2A-DE** 生长有无表型（Yes/No） | yp_matrix_z_haphom | 4554 基因(ORF) | 14484 筛选 | ⬜ | ⬜ | ⬜ |
-| **T2A-DIR** 敏感/抗（sens/resist） | yp_matrix_z_haphom(命中) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| **T2B** 遗传互作符号（neg/pos） | Costanzo SGA | 基因对 | — | ⬜ | ⬜ | ⬜ |
+| **T1a** 表达-DE（是否差异表达 Yes/No） | Deleteome | 1484 敲除(小写标准名) | 6112 ORF | 1039 perts | 15.3% | ✅数据就绪 |
+| **T1b** 表达-DIR（升/降 Inc/Dec） | Deleteome(DE 命中) | 1414 | 4459 ORF | (DE 子集) | 升66%/降34% | ✅数据就绪 |
+| **T2A-DE** 生长有无表型（Yes/No） | yp_matrix_z_haphom | 4554 基因(ORF) | 7689 生长筛选 | 3188 perts | 命中~4.66%(阈`\|z\|≥2`) | ✅数据就绪 |
+| **T2A-DIR** 敏感/抗（sens/resist） | yp_matrix_z_haphom(命中) | 4554 | `sign(z)` | (命中子集) | 抗33%/敏感67% | ✅数据就绪 |
+| **T2B** 遗传互作符号（neg/pos） | Costanzo SGA | 基因对 | — | ⬜ | ⬜ | 🟡 待 Agent4 |
 
-> 说明：T1a 正例率来自已跑的 `de prepare`（DE 350,241 行，正例 53,441）。其余 `#test / 正例率` 待各自
-> prepare/build 落地后填。
+> 说明：T1a/T1b 来自已跑的 `de prepare`（DE 350,241 行/正例 53,441；DIR 53,441 行/升 35,234·降 18,207）。
+> T2A 来自 `build_growth_labels.py`（表型 2,419,323 行/正例 1,510,380；方向 1,510,380 行/抗 499,192·敏感 1,011,188；
+> 切分 1,366 train / 3,188 test）。注：这些是**采样负例后**的数据集分布，非总体真实基率。T2B 等 SGA 落地。
 
 ---
 
