@@ -1,0 +1,17 @@
+# Large raw data — not committed (download via scripts / see docs/data_sources.md)
+data/perturbation/*.txt
+data/perturbation/*.csv
+data/perturbation/*.zip
+data/perturbation/*.gz
+data/knowledge/*.txt
+data/knowledge/*.json
+data/knowledge/*.gz
+data/knowledge/*.zip
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Local scratch
+*.tmp

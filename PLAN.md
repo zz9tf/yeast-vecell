@@ -86,10 +86,15 @@
   - **你已有的酵母资产**（`yeast-rank-cross-lab` 里的 growth / het / 表达矩阵）可以作为额外的上下文轴
     或评测集 —— 接入前需先确认范围。
 
-### Yeast 上的任务定义
-- **DE**：敲除/诱导 `P` 会不会让 ORF `G`（在条件 `C` 下）差异表达？ `Yes/No`
-- **DIR**：DE 命中里 `Increase/Decrease`。
-- 同样按扰动子 30/70 切 train/test，保留 few-shot、数据高效的前提。
+### Yeast 上的任务定义（**双任务**，详见 [`docs/supplementary_data_and_tasks.md`](docs/supplementary_data_and_tasks.md)）
+- **Task 1 — 扰动→表达（旗舰，对标 VCWorld）**
+  - **DE**：敲除/诱导 `P` 会不会让 ORF `G`（在条件 `C` 下）差异表达？ `Yes/No`
+  - **DIR**：DE 命中里 `Increase/Decrease`。数据：Deleteome（首发）→ IDEA/Hughes。
+- **Task 2 — 扰动→生长表型（并行新增，同一套 DE/DIR 式框架）**
+  - **框架 A**（首选）：敲除 `P` 在条件 `C` 下有没有生长表型？更敏感/更抗？
+    数据：Hillenmeyer 2008 chemical-genomics + **用户自有 het/growth 矩阵**（待确认内容）。
+  - **框架 B**（补充任务）：双敲 `A`+`B` 有没有遗传互作？负/正？数据：Costanzo 2016 SGA。
+- 两任务都按扰动子 30/70 切 train/test，保留 few-shot、数据高效前提。
 
 ---
 
@@ -201,8 +206,12 @@ python cli.py de infer --model Qwen/Qwen2.5-14B-Instruct \
    数据源的具体用法见 [`docs/data_sources.md`](docs/data_sources.md)，跨源细节 chat 里继续定。
 4. **推理** ✅ **只用本地模型**（Qwen2.5-14B 主力，7B/4B/Llama3.1-8B 做规模消融；无 API/Gemini）。
 
-**当前唯一未定 = 跨源数据怎么用**（`docs/data_sources.md` §跨源使用方案 1–5，正在讨论）；
-其中 **源 4（你的矩阵）内容待你确认**（是扰动-表达还是扰动-生长表型）。
+5. **双任务** ✅ 除"扰动→表达"外，**并行做"扰动→生长表型"**；并调研补充数据/任务
+   （见 [`docs/supplementary_data_and_tasks.md`](docs/supplementary_data_and_tasks.md)）。
+
+**跨源用法已基本定**（`docs/data_sources.md`：①多数据集当上下文 ②各源原生阈值—先 Deleteome 单阈值
+③Deleteome 先出分 ④按扰动子跨源 hold out）。**唯一待你确认 = het/growth 矩阵的行/列/量纲**，
+定了就能接 Task 2-A。
 
 ---
 
