@@ -1,194 +1,181 @@
-# Yeast-VCWorld — Plan
+# Yeast-VCWorld — 方案
 
-A white-box "virtual cell" simulator for **Saccharomyces cerevisiae**, adapting the VCWorld
-(ICLR 2026, arXiv:2512.00306) recipe: structured biological knowledge + LLM causal reasoning
-to predict transcriptomic responses to perturbations, in a data-efficient and interpretable way.
+面向 **酿酒酵母（Saccharomyces cerevisiae）** 的白盒"虚拟细胞"模拟器，移植 VCWorld
+（ICLR 2026, arXiv:2512.00306）的思路：用**结构化生物知识 + LLM 因果推理**，以数据高效、可解释的方式
+预测扰动下的转录组响应。
 
-Upstream reference implementation cloned at `../VCWorld`.
+上游参考实现已克隆在 `../VCWorld`；pipeline 详细拆解见 [`docs/vcworld_pipeline.md`](docs/vcworld_pipeline.md)。
 
 ---
 
-## Part A — What VCWorld actually does (pipeline dissection)
+## Part A — VCWorld 到底在做什么（pipeline 拆解）
 
-VCWorld is **not** a trained neural net. It is a **retrieval-augmented, prompt-engineered LLM**
-that answers two per-triplet questions:
+关键认知：VCWorld **不是训练出来的神经网络**，而是一个**检索增强 + 提示词工程的 LLM**。它逐条回答
+**(扰动, 基因, 上下文)** 三元组的两个问题：
 
-- **DE** (Differential Expression): does perturbing drug `P` change expression of gene `G`
-  in cell line `C`?  → `Yes / No`
-- **DIR** (Directional change): among DE hits, does `G` go `Increase / Decrease`?
+- **DE**（差异表达）：药物 `P` 扰动细胞系 `C`，会不会让基因 `G` 差异表达？ → `Yes / No`
+- **DIR**（方向）：在 DE 命中里，`G` 是 `Increase / Decrease`？
 
-The unit of prediction is a **(perturbation, gene, context) triplet**. Everything else is
-machinery to give the LLM the right evidence and force stepwise mechanistic reasoning.
+预测单位是 **(扰动, 基因, 上下文) 三元组**。其余所有机制都是为了给 LLM 喂对证据、并强制它逐步做机制推理。
 
-### The 3 conceptual blocks (from the paper figure)
-1. **Sorted Retrieval** — perturbation pathway, cellular process, similar samples.
-2. **LLM Augmentation** — descriptions, biological context, few-shot examples.
-3. **Rule-based Generation** — fixed role ("molecular biologist"), fixed 5-step reasoning
-   scaffold ("how & why"), single deterministic final answer.
+### 论文图里的 3 个概念块
+1. **Sorted Retrieval（排序检索）** — 扰动通路、细胞过程、相似样本。
+2. **LLM Augmentation（LLM 增强）** — 描述、生物学上下文、few-shot 例子。
+3. **Rule-based Generation（规则化生成）** — 固定角色（"分子生物学家"）、固定 5 步推理脚手架
+   （"how & why"）、唯一确定的最终答案。
 
-### The 5 CLI stages (concrete I/O)
+### 5 个 CLI 阶段（具体 I/O）
 
-| Stage | Code | Input | Processing | Output |
-|-------|------|-------|-----------|--------|
-| **1. prepare** | `stages/prepare.py` | `.h5ad` scRNA-seq (Tahoe-100M, one cell line; `obs['drug']`, control `DMSO_TF`) | `normalize_total(1e4)`+`log1p` → `sc.tl.rank_genes_groups` (Wilcoxon, each drug vs DMSO, BH-FDR). DE label=1 if `padj<0.05 & |logFC|>0.25`; label=0 sampled (200/drug) from `pval>0.1`. DIR label=1 if `logFC>0` among DE hits. Perturbations split train/test 30/70. | `{cell}_DE.csv`, `{cell}_DIR.csv` → cols `pert, gene, label, split` |
-| **2. retrieve** | `stages/retrieve.py` | DE/DIR CSV + **drug-sim JSON** + **gene-sim JSON** (KG neighbors) | Build `seen` maps (drug→genes, gene→drugs) from **train** split. For each test case, take top-k similar drugs & similar genes, then pull analogous **(drug,gene)** pairs observed in train (shared-drug / shared-gene / both). Budget-capped. | `retrieval.json`: list of `{test_case:{drug,gene}, retrieved_pairs:[[drug,gene]...]}` |
-| **3. prompt** | `stages/prompt.py` + `support/*_template.py` | retrieval.json + **drug-desc JSON** + **gene-desc JSON** + template (prompt scaffold + hand-written `cell_lines` descriptions) | Pick a cell-line context; format retrieved pairs into "Examples" (desc + a Result label); fill the 5-step DE/DIR template. | `prompts.txt` (blocks split by `====`) |
-| **4a. infer** | `stages/infer.py` | prompts.txt + local HF model (e.g. Llama-3.1-8B) | Parse `[Start of Prompt]…`/`[Start of Input]…` into system+user msgs → chat template → `model.generate`. | `predictions.txt` (reasoning + final `Yes/No` or `Increase/Decrease`) |
-| **4b. infer-api** | `stages/infer_api.py` | prompts.txt + OpenAI-compatible endpoint | Same, over HTTP `/chat/completions`. | `predictions.txt` |
-| **(aux) single** | `stages/single_case/prompt.py` | one out-of-dataset `(pert,gene,cell)` | Resolve similar drugs/genes (case-insensitive / normalized / alias / **LLM-ranked fallback** if missing from JSON), gather evidence pairs from CSV, emit one prompt. | one-case `prompt.txt` |
+| 阶段 | 代码 | 输入 | 处理 | 输出 |
+|------|------|------|------|------|
+| **1. prepare** | `stages/prepare.py` | `.h5ad` 单细胞（Tahoe-100M，单个细胞系；`obs['drug']`，对照 `DMSO_TF`） | `normalize_total(1e4)`+`log1p` → `sc.tl.rank_genes_groups`（Wilcoxon，每药 vs DMSO，BH-FDR）。DE 标签：`padj<0.05 & \|logFC\|>0.25` 记 1；标签 0 从 `pval>0.1` 里每药抽 200。DIR：DE 命中里 `logFC>0` 记 1。扰动按 30/70 切 train/test。 | `{cell}_DE.csv`、`{cell}_DIR.csv` → 列 `pert, gene, label, split` |
+| **2. retrieve** | `stages/retrieve.py` | DE/DIR CSV + **药物相似度 JSON** + **基因相似度 JSON**（知识图谱邻居） | 从 **train** 建 `seen` 映射（药→基因、基因→药）。对每个测试 case，取 top-k 相似药 & 相似基因，再从 train 里捞出类比的 **(药,基因)** 对（共享药 / 共享基因 / 两者都相似）。有 budget 上限。 | `retrieval.json`：`[{test_case:{drug,gene}, retrieved_pairs:[[drug,gene]...]}]` |
+| **3. prompt** | `stages/prompt.py` + `support/*_template.py` | retrieval.json + **药物描述 JSON** + **基因描述 JSON** + 模板（提示脚手架 + 手写的 `cell_lines` 描述） | 选一个细胞系上下文；把检索到的对拼成 "Examples"（描述 + 一个 Result 标签）；填入 5 步 DE/DIR 模板。 | `prompts.txt`（块间用 `====` 分隔） |
+| **4a. infer** | `stages/infer.py` | prompts.txt + 本地 HF 模型（如 Llama-3.1-8B） | 把 `[Start of Prompt]…`/`[Start of Input]…` 解析成 system+user 消息 → chat template → `model.generate`。 | `predictions.txt`（推理链 + 最终 `Yes/No` 或 `Increase/Decrease`） |
+| **4b. infer-api** | `stages/infer_api.py` | prompts.txt + OpenAI 兼容接口 | 同上，走 HTTP `/chat/completions`。 | `predictions.txt` |
+| **(辅助) single** | `stages/single_case/prompt.py` | 单个数据集外的 `(pert,gene,cell)` | 解析相似药/基因（大小写无关 / 归一化 / 别名 / JSON 里缺失时用 **LLM 排序兜底**），从 CSV 收集证据对，产出单条 prompt。 | 单 case 的 `prompt.txt` |
 
-### The knowledge assets (gitignored; from Google Drive + Zenodo)
-- `combined_similarity_sorted.json` — **drug similarity** (chemical / MoA neighbors).
-- `results_close_gene.json` — **gene similarity** = neighbors from an *open-world knowledge graph*
-  (`direct_neighbors`, `two_hop_neighbors`, …); built from Reactome/UniProt/STRING per the figure.
-- `drug_simp.json` — drug text descriptions (PubChem/DrugBank).
-- `gene_output.json` — gene text descriptions.
-- Cell-line descriptions are **hard-coded in the template** (tissue, hallmark mutations e.g. KRAS/TP53).
+### 知识资产（gitignore；来自 Google Drive + Zenodo）
+- `combined_similarity_sorted.json` — **药物相似度**（化学 / MoA 邻居）。
+- `results_close_gene.json` — **基因相似度** = 来自*开放世界知识图谱*的邻居（`direct_neighbors`、
+  `two_hop_neighbors`…）；按论文图由 Reactome/UniProt/STRING 构建。
+- `drug_simp.json` — 药物文本描述（PubChem/DrugBank）。
+- `gene_output.json` — 基因文本描述。
+- 细胞系描述是**硬编码在模板里**的（组织来源、招牌突变如 KRAS/TP53）。
 
 ### Benchmark
-**GeneTAK**, derived from the Tahoe-100M atlas: 5 cell lines, 348 drug compounds, DE + DIR tasks,
-30/70 train/test-by-perturbation split to force few-shot behavior.
+**GeneTAK**，源自 Tahoe-100M 图谱：5 个细胞系、348 个药物化合物，DE + DIR 两个任务，按扰动 30/70
+切 train/test，以模拟 few-shot。
 
-### Two things worth flagging before porting
-1. **Bulk `prompt` stage assigns few-shot example labels with `random.choice(choices)`** — the
-   retrieved pairs carry no label, so the "Result:" line in each example is *random*. Only the
-   `single_case` path uses the true label. For yeast we should **carry real labels through retrieval**
-   so the in-context examples are actually informative (or deliberately keep a "label-free analogue"
-   ablation).
-2. **The retrieval heuristic is ad-hoc** (`get_drug_gene_pairs`). It's a good baseline but yeast's
-   far richer, higher-confidence networks let us do genuine graph-aware retrieval.
+### 移植前值得注意的两点
+1. **批量 `prompt` 阶段的 few-shot 例子标签是 `random.choice(choices)` 随机贴的** —— retrieved
+   pairs 不带 label，所以每个例子的 "Result:" 行是*随机*的。只有 `single_case` 路径用了真标签。
+   移植到 yeast 应该**把真标签一路带到检索里**，让 in-context 例子真正有信息量（或刻意保留一个
+   "无标签类比" 的消融）。
+2. **检索逻辑是拍脑袋的启发式**（`get_drug_gene_pairs`）。作为 baseline 没问题，但 yeast 的网络更
+   密、置信度更高，可以做真正的图检索。
 
 ---
 
-## Part B — Mapping VCWorld → Yeast
+## Part B — VCWorld → Yeast 映射
 
-The key reframing: yeast is unicellular, so there is **no "cell line" axis and (usually) no drug**.
-The natural, data-rich analog is **genetic perturbation → transcriptome**.
+核心 reframe：酵母是单细胞，所以**没有"细胞系"轴、通常也没有药**。数据最全、最自然的类比是
+**基因扰动 → 转录组**。
 
-| VCWorld (human) | Yeast-VCWorld | Notes |
+| VCWorld（人） | Yeast-vecell | 备注 |
 |---|---|---|
-| Perturbation = **drug compound** | Perturbation = **single-gene deletion / TF induction / overexpression** (chemical optional) | Genetic perturbation is the gold-standard, best-covered yeast data |
-| Read-out = human gene | Read-out = yeast ORF (~6000) | systematic name `YFL039C` + standard name `ACT1` |
-| Context = **cancer cell line** (5) + hallmark mutations | Context = **strain background + growth condition/medium/stress** (e.g. BY4741 in YPD; +/- stress) | Replaces "cell_lines" list in template |
-| DEG label vs DMSO control | DEG label vs **WT / mock** | same Wilcoxon/limma logic |
-| Drug-sim (chemical/MoA) | **Perturbagen-sim** = genetic-interaction (SGA) profile correlation and/or GO/functional similarity between deleted genes | Boone/Costanzo SGA is a huge asset |
-| Gene-sim KG (Reactome/STRING) | **Yeast co-functional KG**: STRING, BioGRID, YeastNet, KEGG, GO | denser & higher quality than human |
-| Drug descriptions (PubChem) | **Gene descriptions** = SGD description + GO terms (perturbagen == deleted gene) | one description source serves both roles |
-| Gene descriptions (UniProt) | SGD/UniProt-yeast gene descriptions | |
-| — (implicit regulation) | **YEASTRACT TF→target regulatory network** | *the* asset for DIR (direction) reasoning; near-complete for yeast |
+| 扰动 = **药物化合物** | 扰动 = **单基因敲除 / TF 诱导 / 过表达**（化学可选） | 遗传扰动是酵母覆盖最好的金标准数据 |
+| 读出 = 人类基因 | 读出 = 酵母 ORF（~6000） | 系统名 `YFL039C` + 标准名 `ACT1` |
+| 上下文 = **癌细胞系**（5 个）+ 招牌突变 | 上下文 = **菌株背景 + 培养基/胁迫条件**（如 BY4741 在 YPD；±胁迫） | 替换模板里的 `cell_lines` 列表 |
+| DEG 标签 vs DMSO 对照 | DEG 标签 vs **WT / mock** | Wilcoxon/limma 逻辑相同 |
+| 药物相似度（化学/MoA） | **扰动子相似度** = SGA 遗传互作 profile 相关性 和/或 敲除基因间 GO 功能相似 | Boone/Costanzo 的 SGA 是巨大资产 |
+| 基因 KG（Reactome/STRING） | **酵母共功能 KG**：STRING、BioGRID、YeastNet、KEGG、GO | 比人类更密、质量更高 |
+| 药物描述（PubChem） | **基因描述** = SGD 描述 + GO term（扰动子==被敲基因） | 一份描述同时服务两个角色 |
+| 基因描述（UniProt） | SGD/UniProt-yeast 基因描述 | |
+| —（隐含调控） | **YEASTRACT TF→靶基因调控网络** | DIR（方向）推理的**王牌**；酵母里近乎完备 |
 
-### Recommended perturbation dataset (the "Tahoe analog")
-- **Primary: Deleteome** (Kemmeren et al., Cell 2014) — ~1484 single-gene-deletion strains ×
-  ~6000 genes, expression vs WT, with published logFC + p-values. This is a near drop-in for
-  GeneTAK: it already yields `(deleted_gene, measured_gene, logFC, pval)` triplets → DE/DIR labels.
-- **Alternatives / extensions**:
-  - **IDEA** (Hackett et al. 2020) — 200+ TF induction time courses (great for DIR/dynamics).
-  - **Hughes compendium** (2000) — 300 deletions/treatments (older, cross-validation).
-  - **Chemical**: if a drug axis is wanted, add a compound-perturbation set + PubChem descriptions
-    to keep the exact VCWorld framing (then perturbagen-sim = chemical similarity again).
-  - **User's existing yeast assets** (growth / het / expression matrices in `yeast-rank-cross-lab`)
-    can seed additional context axes or an evaluation set — confirm scope before wiring in.
+### 推荐的扰动数据集（"Tahoe 替身"）
+- **首选：Deleteome**（Kemmeren et al., Cell 2014）—— ~1484 个单基因敲除株 × ~6000 基因，表达 vs WT，
+  自带 logFC + p 值。它几乎是 GeneTAK 的直接替身：已经能产出
+  `(被敲基因, 被测基因, logFC, pval)` 三元组 → DE/DIR 标签。
+- **备选 / 扩展**：
+  - **IDEA**（Hackett et al. 2020）—— 200+ 个 TF 诱导时序（适合 DIR/动力学）。
+  - **Hughes compendium**（2000）—— 300 个敲除/处理（更老，做交叉验证）。
+  - **化学**：若想要药物轴，加一套化合物扰动数据 + PubChem 描述，即可完全保留 VCWorld 原框架
+    （此时扰动子相似度又回到化学相似度）。
+  - **你已有的酵母资产**（`yeast-rank-cross-lab` 里的 growth / het / 表达矩阵）可以作为额外的上下文轴
+    或评测集 —— 接入前需先确认范围。
 
-### Task definition on yeast
-- **DE**: does deleting/inducing `P` differentially express ORF `G` (in condition `C`)? `Yes/No`
-- **DIR**: `Increase/Decrease` among DE hits.
-- Same 30/70 train/test **split by perturbagen** to preserve the few-shot, data-efficient premise.
+### Yeast 上的任务定义
+- **DE**：敲除/诱导 `P` 会不会让 ORF `G`（在条件 `C` 下）差异表达？ `Yes/No`
+- **DIR**：DE 命中里 `Increase/Decrease`。
+- 同样按扰动子 30/70 切 train/test，保留 few-shot、数据高效的前提。
 
 ---
 
-## Part C — Implementation phases
+## Part C — 实施阶段
 
-Mirror VCWorld's stage layout (`src/cli_pipeline/stages/`) so the CLI stays familiar; swap the
-data/knowledge backends underneath.
+沿用 VCWorld 的阶段布局（`src/cli_pipeline/stages/`），保持 CLI 熟悉；只替换底层数据/知识后端。
 
-**Phase 0 — Scaffold & data acquisition**
-- Clone VCWorld CLI structure; keep `cli.py` subcommands (`prepare/retrieve/prompt/infer`).
-- Download Deleteome matrices + p-values → `data/perturbation/`.
-- Pull knowledge: SGD gene descriptions + GO, STRING/BioGRID/YeastNet edges, YEASTRACT TF→target,
-  Costanzo SGA profiles → `data/knowledge/`.
+**Phase 0 — 脚手架 & 数据获取**
+- 克隆 VCWorld 的 CLI 结构；保留 `cli.py` 的子命令（`prepare/retrieve/prompt/infer`）。
+- 下载 Deleteome 矩阵 + p 值 → `data/perturbation/`。
+- 拉取知识：SGD 基因描述 + GO、STRING/BioGRID/YeastNet 边、YEASTRACT TF→靶、Costanzo SGA profile
+  → `data/knowledge/`。
 
-**Phase 1 — `prepare` (labels)**
-- If starting from Deleteome's precomputed logFC/p-values: skip `rank_genes_groups`, apply the same
-  thresholds directly (`padj<0.05 & |logFC|>thr` → DE=1; sample non-DE negatives per perturbagen).
-- If starting from raw counts: keep the scanpy path (normalize→log1p→Wilcoxon vs WT).
-- Emit `{condition}_DE.csv`, `{condition}_DIR.csv` with `pert, gene, label, split`.
+**Phase 1 — `prepare`（打标签）**
+- 若从 Deleteome 已算好的 logFC/p 值起步：跳过 `rank_genes_groups`，直接套同样阈值
+  （`padj<0.05 & |logFC|>thr` → DE=1；每扰动子抽非 DE 负样本）。
+- 若从原始 counts 起步：保留 scanpy 路径（normalize→log1p→Wilcoxon vs WT）。
+- 产出 `{condition}_DE.csv`、`{condition}_DIR.csv`，列 `pert, gene, label, split`。
 
-**Phase 2 — Knowledge builders (the real work)**
-- `build_gene_sim.py` → `results_close_gene.json`: for each ORF, ranked co-functional neighbors
-  from STRING/BioGRID/YeastNet (+ GO semantic similarity), with `direct_neighbors` / `two_hop`.
-- `build_pert_sim.py` → `perturbagen_similarity.json`: for each deleted gene, similar perturbagens
-  by SGA genetic-interaction-profile correlation and/or GO/functional similarity.
-- `build_descriptions.py` → `gene_desc.json` (SGD "Description" + GO BP/MF/CC + aliases), reused as
-  perturbagen descriptions.
-- `build_regulatory.py` → `tf_targets.json` from YEASTRACT (used to make DIR reasoning mechanistic).
-- Author `support/DE_template.py` / `DIR_template.py`: replace `cell_lines` with a **conditions**
-  list (strain + medium + active-pathway notes); rewrite the 5-step scaffold in yeast terms
-  (deletion → epistasis/pathway → TF (YEASTRACT) → target ORF → direction).
+**Phase 2 — 知识构建器（真正的工作量）**
+- `build_gene_sim.py` → `results_close_gene.json`：对每个 ORF，从 STRING/BioGRID/YeastNet
+  （+ GO 语义相似）取排序后的共功能邻居，带 `direct_neighbors` / `two_hop`。
+- `build_pert_sim.py` → `perturbagen_similarity.json`：对每个被敲基因，用 SGA 遗传互作 profile 相关性
+  和/或 GO/功能相似取相似扰动子。
+- `build_descriptions.py` → `gene_desc.json`（SGD "Description" + GO BP/MF/CC + 别名），复用为扰动子描述。
+- `build_regulatory.py` → `tf_targets.json`（来自 YEASTRACT，用于让 DIR 推理机制化）。
+- 编写 `support/DE_template.py` / `DIR_template.py`：把 `cell_lines` 换成**条件**列表（菌株 + 培养基 +
+  活跃通路备注）；把 5 步脚手架改写成酵母术语（敲除 → 上位/通路 → TF（YEASTRACT）→ 靶 ORF → 方向）。
 
-**Phase 3 — `retrieve` (improve over the baseline heuristic)**
-- Keep VCWorld's `seen`/budget logic as a baseline.
-- Add graph-aware retrieval: prefer analogue pairs where perturbagen is an SGA/pathway neighbor
-  **and** the read-out gene is a network neighbor; rank by combined edge confidence.
-- **Fix the random-label issue**: carry the true train label into `retrieved_pairs` so few-shot
-  "Result:" lines are real evidence. Keep a `--shuffle-labels` flag for the ablation.
+**Phase 3 — `retrieve`（在 baseline 启发式上改进）**
+- 保留 VCWorld 的 `seen`/budget 逻辑作 baseline。
+- 加图检索：优先选扰动子是 SGA/通路邻居 **且** 读出基因是网络邻居的类比对，按综合边置信度排序。
+- **修掉随机标签问题**：把真 train 标签带进 `retrieved_pairs`，让 few-shot 的 "Result:" 行是真证据。
+  保留 `--shuffle-labels` 开关做消融。
 
 **Phase 4 — `prompt` + `infer`**
-- Reuse `prompt.py`/`infer.py`/`infer_api.py` nearly verbatim (they're data-agnostic once the
-  template + JSONs are yeast).
-- Inference: start with an API model for iteration; local HF (Llama-3.1-8B / Qwen) for cost/repro.
+- `prompt.py`/`infer.py`/`infer_api.py` 几乎原样复用（模板 + JSON 换成 yeast 后它们与数据无关）。
+- 推理：先用 API 模型迭代；本地 HF（Llama-3.1-8B / Qwen）保成本/复现。
 
-**Phase 5 — Evaluation & baselines**
-- Parser: map final line → label; compute Accuracy / F1 / AUROC (DE), directional accuracy (DIR),
-  per-perturbagen and per-condition breakdowns.
-- Baselines to beat: (a) majority class, (b) "network-neighbor → DE" heuristic, (c) LLM **without**
-  retrieval (ablate evidence), (d) a simple supervised model (logistic reg on network features).
-- Interpretability check (VCWorld's headline claim): do the LLM's cited TF→target bridges match
-  YEASTRACT ground truth? Report mechanistic-consistency rate.
+**Phase 5 — 评测 & baseline**
+- 解析器：最终行 → 标签；算 Accuracy / F1 / AUROC（DE）、方向准确率（DIR），按扰动子和按条件拆分。
+- 要打败的 baseline：(a) 多数类，(b) "网络邻居 → DE" 启发式，(c) **不带检索**的 LLM（消融证据），
+  (d) 简单监督模型（网络特征上的逻辑回归）。
+- 可解释性检查（VCWorld 的核心卖点）：LLM 引用的 TF→靶桥接是否匹配 YEASTRACT ground truth？报告机制一致率。
 
-**Phase 6 — Extensions (optional)**
-- Add condition/stress as a real second axis (environmental gene-expression compendium).
-- Move from binary DE to magnitude/regression; from static to time-course (IDEA).
+**Phase 6 — 扩展（可选）**
+- 把条件/胁迫做成真正的第二个轴（环境基因表达 compendium）。
+- 从二分类 DE 走向幅度/回归；从静态走向时序（IDEA）。
 
 ---
 
-## Part D — Key design decisions & pitfalls
+## Part D — 关键设计取舍 & 坑
 
-- **Why yeast is a good fit**: model organism → LLMs already carry strong priors; networks
-  (YEASTRACT, SGA, STRING) are dense and high-confidence → white-box reasoning is more grounded than
-  in human. Deleteome gives thousands of clean perturbation→transcriptome triplets for cheap.
-- **Identifier hygiene**: unify on systematic ORF names; keep an alias map (standard name ↔
-  systematic ↔ SGD ID). VCWorld already needs a gene-alias table — yeast needs a bigger one.
-- **Direction (DIR) is where knowledge pays off**: encode YEASTRACT activator/repressor signs so the
-  template's "suppress an activator → Decrease" logic is checkable, not hand-wavy.
-- **Carry real labels in retrieval** (see Part A note 1) — likely the single biggest quality lever.
-- **Leakage**: split by perturbagen (not by pair); ensure retrieval only reads the **train** split.
-- **Evaluation honesty**: always report the no-retrieval and majority-class baselines alongside.
-
----
-
-## Open questions (need user input)
-
-1. **Perturbation type**: genetic-only (Deleteome, recommended) or also keep a chemical/drug axis to
-   stay maximally faithful to VCWorld?
-2. **Context axis**: single reference condition (BY4741/YPD) to start, or multi-condition/stress from
-   day one?
-3. **Data source**: use Deleteome as-is, or wire in the existing yeast matrices from
-   `yeast-rank-cross-lab`? (What do those matrices contain — perturbation-response or phenotype?)
-4. **Inference budget**: API model (fast iteration) vs local HF (repro/cost) for the first runs?
+- **为什么 yeast 很合适**：模式生物 → LLM 已有强先验；网络（YEASTRACT、SGA、STRING）又密又高置信 →
+  白盒推理比在人类里更有根基。Deleteome 便宜地给出成千上万条干净的 扰动→转录组 三元组。
+- **标识符卫生**：统一用系统 ORF 名；维护别名映射（标准名 ↔ 系统名 ↔ SGD ID）。VCWorld 本就需要基因别名表
+  —— yeast 需要一张更大的。
+- **DIR（方向）是知识发力的地方**：把 YEASTRACT 的激活/抑制符号编码进去，让模板的
+  "抑制一个激活子 → Decrease" 逻辑可核查，而不是拍脑袋。
+- **检索里带真标签**（见 Part A 第 1 点）—— 很可能是最大的单点质量杠杆。
+- **泄漏**：按扰动子切（不是按对切）；确保检索只读 **train** split。
+- **评测要诚实**：始终把不带检索、多数类这两个 baseline 一并报告。
 
 ---
 
-## Repo layout (this project)
+## 待定问题（需要你拍板）
+
+1. **扰动类型**：只做遗传（Deleteome，推荐）？还是也保留化学/药物轴以最大程度贴合 VCWorld？
+2. **上下文轴**：先单一参考条件（BY4741/YPD）？还是一上来就多条件/胁迫？
+3. **数据源**：直接用 Deleteome？还是接你 `yeast-rank-cross-lab` 里已有的矩阵？
+   （那些矩阵装的是扰动-响应还是表型？）
+4. **推理预算**：先用 API 模型（快迭代）还是本地 HF（复现/成本）跑第一批？
+
+---
+
+## 仓库结构（本项目）
 ```
 yeast-vecell/
-├── PLAN.md                     # this file
+├── PLAN.md                     # 本文件
 ├── README.md
 ├── src/cli_pipeline/
-│   ├── cli.py                  # de/dir prepare|retrieve|prompt|infer  (ported)
+│   ├── cli.py                  # de/dir prepare|retrieve|prompt|infer （移植）
 │   └── stages/                 # prepare, retrieve, prompt, infer, infer_api, single_case
-├── support/                    # DE_template.py, DIR_template.py (yeast conditions + 5-step scaffold)
+├── support/                    # DE_template.py, DIR_template.py（酵母条件 + 5 步脚手架）
 ├── data/
-│   ├── perturbation/           # Deleteome / IDEA matrices → DE/DIR CSVs
+│   ├── perturbation/           # Deleteome / IDEA 矩阵 → DE/DIR CSV
 │   └── knowledge/              # gene_desc, gene_sim (STRING/BioGRID), pert_sim (SGA), tf_targets (YEASTRACT)
-└── docs/                       # dataset notes, KG build notes, eval reports
+└── docs/                       # 数据集说明、KG 构建说明、评测报告
 ```
