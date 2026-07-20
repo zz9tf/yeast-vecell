@@ -39,12 +39,25 @@ mechanism or a labelled analogue, rather than to name-similarity. Concretely A:
 2. **Forces a YEASTRACT TF-sign step** — the model must name the TF(s) regulating
    the readout and fill in two signs explicitly: (Sign 1) activator vs repressor
    of the gene, and (Sign 2) does the deletion raise or lower that TF's activity.
-3. **Makes the DIR logic crisp and checkable** — DIR step 4 is a full 4-row
-   truth table (lower an activator → **Decrease**; lower a repressor →
-   **Increase**; raise an activator → **Increase**; raise a repressor →
-   **Decrease**), then a mandatory cross-check against the true directions of
-   same-pathway analogue Examples, with an explicit tie-break rule (same-pathway
-   analogue wins on disagreement).
+3. **Makes the DIR logic crisp and checkable** — because a deletion is a *full
+   loss of function* (not a drug agonist/antagonist), the YEASTRACT edge sign
+   resolves the direction cleanly. DIR step 3 first checks the **direct edge**
+   (is the deleted gene itself a TF regulating the readout? → delete an
+   **activator** ⇒ **Decrease**, delete a **repressor** ⇒ **Increase**), then
+   step 4 gives the full 4-row indirect truth table (lower an activator →
+   Decrease; lower a repressor → Increase; raise an activator → Increase; raise a
+   repressor → Decrease), followed by a mandatory cross-check against the true
+   directions of same-pathway analogue Examples (same-pathway analogue wins on
+   disagreement).
+5. **Encodes the de-repression prior and reasons past it** — Deleteome DIR labels
+   run ~**66% Increase / 34% Decrease** (deletions de-repress targets more often
+   than they down-regulate), so a naive "always Increase" already scores 66% Acc.
+   Branch A states this ~2:1 prior as a *weak* default for genuinely ambiguous
+   cases only, and — because evaluation uses **macro-F1 / MCC**, not raw accuracy
+   — explicitly instructs the model to **commit to Decrease** whenever the sign
+   rule or the closest analogues warrant it, rather than retreating to the
+   majority Increase. Catching the minority Decrease class is where macro-F1 / MCC
+   are won.
 4. **Mandates analogue citation** — the model must cite ≥1 Example *by number*,
    quote its true Result/direction, and state whether it supports or argues
    against the link. "No supporting Example + no regulatory link = weak evidence."
@@ -77,6 +90,11 @@ and use mechanism only as a light adjustment / tie-breaker. Concretely B:
    `Confidence:` (High/Medium/Low) and `Final:` lines, so a downstream parser can
    grab a confidence signal (useful later for Answered% / abstention / AUROC-style
    analysis) and the final closed-set sentence deterministically.
+5. **DIR base-rate note without over-anchoring** — B's DIR key-fact block states
+   the ~2:1 Increase:Decrease class prior, but frames it as a *weak tie-breaker*
+   used only when the closest same-context analogues are split, and (since scoring
+   is macro-F1 / MCC) tells the model to commit to Decrease when the sign rule
+   points there rather than defaulting to the Increase majority.
 4. **Conflict rule** — when the analogue vote and the mechanism disagree, trust
    the same-context Examples unless the mechanism/sign rule is decisive. This is
    the operational statement of "calibrate to the data you can see."
@@ -95,7 +113,8 @@ labels are real, informative, and same-context.
 | Reasoning steps | 5 | 5, richer + checkable | 3 + Confidence/Final |
 | Null framing | context prose only | explicit "complete null / steady state" assumptions block | one calibration-framing block |
 | TF sign step | narrative ("YEASTRACT-style") | mandatory 2-sign fill-in per TF | tie-breaker only |
-| DIR direction logic | 2 bullet rules | full 4-row truth table + cross-check + tie-break | vote-first, sign rule as tie-break |
+| DIR direction logic | 2 bullet rules | direct-edge rule + full 4-row truth table + cross-check + tie-break | vote-first, sign rule as tie-break |
+| DIR class prior (~66% Inc) | not stated | stated as weak default; **commit to Decrease** on evidence (macro-F1/MCC) | stated as weak tie-breaker; commit to Decrease on sign rule |
 | Use of Examples | cite (optional) | **cite ≥1 by number, state agreement** | **anchor / vote; Examples are the prior** |
 | Output | numbered 1–5 | numbered 1–5 | 1–3 + `Confidence:` + `Final:` |
 | Final answer sentences | closed set | **identical** | **identical** |

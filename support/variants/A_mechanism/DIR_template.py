@@ -42,9 +42,10 @@ You are Yeast-VCWorld, a white-box Biological World Model and Causal Reasoning E
 Goal: This readout ORF {{gene}} is already known to be differentially expressed after deleting {{pert}} in the {{context_short}} context. Determine whether it goes **Increase** or **Decrease**.
 
 Modeling assumptions you MUST hold:
-- A deletion is a COMPLETE null: {{pert}}'s product is 100% absent. Anchor case: losing an ACTIVATOR pushes its targets DOWN; losing a REPRESSOR pushes its targets UP.
+- A deletion is a COMPLETE null (full loss of function), NOT a drug that partially agonises or antagonises a target. This makes the YEASTRACT edge sign clean: if {{pert}} is itself a transcription factor that regulates {{gene}}, then deleting an ACTIVATOR of {{gene}} makes {{gene}} DECREASE, and deleting a REPRESSOR of {{gene}} makes {{gene}} INCREASE. This direct-edge rule is your strongest anchor whenever it applies.
 - The readout is a new STEADY STATE, so include feedback and de-repression, not only the immediate effect.
 - Direction is a SIGN, so keep the bookkeeping exact: one sign error flips the answer.
+- Class prior for this dataset: deletions DE-REPRESS targets more often than they down-regulate them, so the true labels run about 2:1 Increase:Decrease. Lean toward Increase ONLY when the mechanism is genuinely unclear -- never default to Increase just to play the odds. Scoring is macro-F1 / MCC (not raw accuracy), which specifically rewards catching the minority DECREASE cases, so COMMIT to Decrease whenever the sign rule or the same-pathway analogues warrant it, and reason past the prior rather than pattern-matching it.
 
 Input Data:
 - Perturbagen -- deleted gene ({{pert}}): {desc_pert}
@@ -63,17 +64,21 @@ Output: Fill in the five steps below. Resolve every sign explicitly and cite Exa
    - **Relevance:** Is {{gene}} downstream of {{pert}}'s pathway in a direction-determining way?
 
 3) **TF Sign Assignment (YEASTRACT logic):**
-   Name the transcription factor(s) that regulate {{gene}}. For EACH TF, fill in the two signs explicitly:
+   FIRST check the DIRECT edge: is {{pert}} itself a transcription factor with a YEASTRACT edge onto {{gene}}? If yes, record its sign (activator or repressor of {{gene}}); because a null removes that TF entirely, this alone fixes the direction (see step 4) and is the cleanest case.
+   OTHERWISE (indirect case), name the transcription factor(s) that regulate {{gene}} and, for EACH, fill in the two signs explicitly:
    - Sign 1 -- is the TF an ACTIVATOR or a REPRESSOR of {{gene}}?
    - Sign 2 -- does deleting {{pert}} RAISE or LOWER that TF's activity? (Trace: null of {{pert}} -> pathway change -> TF activity change.)
 
 4) **Direction Truth Table & Evidence Cross-Check:**
-   Combine the two signs from step 3 to read off the direction. Apply exactly this table:
+   Direct-edge shortcut (from step 3) -- use whenever {{pert}} directly regulates {{gene}}:
+   - {{pert}} is an ACTIVATOR of {{gene}} -> deleting it -> **Decrease**
+   - {{pert}} is a REPRESSOR of {{gene}}  -> deleting it -> **Increase**
+   Indirect case -- combine the two signs from step 3 and apply exactly this table:
    - deletion LOWERS an ACTIVATOR of {{gene}}  -> **Decrease**
    - deletion LOWERS a REPRESSOR of {{gene}}   -> **Increase**
    - deletion RAISES an ACTIVATOR of {{gene}}   -> **Increase**
    - deletion RAISES a REPRESSOR of {{gene}}    -> **Decrease**
-   If several TFs act, state which dominates and why. Then CROSS-CHECK: cite by number the analogue Example(s) whose true direction best match this case, and state whether they AGREE with the table's output. If the table and the closest analogues disagree, say so and let the same-pathway analogue direction win, explaining why.
+   If several TFs act, state which dominates and why. Then CROSS-CHECK: cite by number the analogue Example(s) whose true direction best matches this case, and state whether they AGREE with the table's output. If the table and the closest analogues disagree, say so and let the same-pathway analogue direction win, explaining why. Do NOT retreat to the majority "Increase" prior when the sign rule or the analogues point to Decrease -- committing to a well-supported Decrease is exactly what the macro-F1 / MCC scoring rewards.
 
 5) **Final Deterministic Prediction:**
    Report the net direction from the reconciled step 4.

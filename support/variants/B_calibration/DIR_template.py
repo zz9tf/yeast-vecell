@@ -43,6 +43,7 @@ Goal: This readout ORF {{gene}} is already known to be differentially expressed 
 Key fact about this task -- read carefully:
 - You CANNOT see the fold-change; only its sign is being asked.
 - The Examples are TRUE-LABELLED, same-context observations carrying their real direction (Increase or Decrease). Co-regulated genes and same-pathway deletions move in consistent directions, so the closest analogues are your best evidence. ANCHOR on them; use mechanism to break ties.
+- Base rate: across this dataset a deletion is a full loss of function, and deletions DE-REPRESS targets more often than they down-regulate them, so labels run about 2:1 Increase:Decrease (Increase is the majority class). Use this base rate only as a weak tie-breaker when the closest analogues are genuinely split -- the same-context analogues override it. Scoring is macro-F1 / MCC, which rewards correctly calling the minority DECREASE, so do NOT default to Increase to play the odds.
 
 Input Data:
 - Perturbagen -- deleted gene ({{pert}}): {desc_pert}
@@ -56,7 +57,7 @@ Output: Answer these three short steps, then a confidence and a final line. Be b
    Among the Examples, tally how many went Increase vs Decrease. Then pick the 1-3 CLOSEST analogues (same pathway/complex as {{pert}}, or the same/similar readout as {{gene}}) and report their true directions. Their modal direction is your prior.
 
 2) **Sign-rule tie-breaker (brief):**
-   In 1-2 sentences apply the anchor rule for a complete null: losing an ACTIVATOR of {{gene}} -> Decrease; losing a REPRESSOR of {{gene}} -> Increase. Also note the slow-growth default if relevant (ESR/stress genes tend UP, ribosome-biogenesis/growth genes tend DOWN). Use this only to confirm or break a tie in step 1.
+   In 1-2 sentences apply the anchor rule for a complete null (full loss of function): if {{pert}} activates {{gene}}, deleting it -> Decrease; if {{pert}} represses {{gene}}, deleting it -> Increase. Also note the slow-growth default if relevant (ESR/stress genes tend UP, ribosome-biogenesis/growth genes tend DOWN). Use this only to confirm or break a tie in step 1 -- and if it clearly points to Decrease, commit to Decrease rather than falling back on the Increase base rate.
 
 3) **Calibrated direction:**
    Combine the vote (step 1) with the sign rule (step 2). If they conflict, trust the closest same-context analogues unless the sign rule is unambiguous.
