@@ -141,4 +141,20 @@ python src/eval/score.py --task de \
 4. 登录节点 `snapshot_download` 4 个模型到共享缓存。
 5. `task run 'ssh h100-8s-06 "bash run_eval.sh ..."'` 并行 4 模型（DE+DIR）。
 6. `score.py` 打 8 份 → 填 `RESULTS.md`。
-> Task2(生长表型)标签已由 `build_growth_labels.py` 生成，但其 retrieve/prompt 尚未适配（读出是 condition 而非 gene），列为后续。
+### Task2（扰动→生长表型）—— 已一等公民化
+读出是**条件(screen)**而非基因，用同一套 CLI + 复用件：
+- 标签 `src/task2/build_growth_labels.py`（yp_matrix_z_haphom）→ `data/task2/haphom_growth_{phenotype,direction}.csv`（列 `pert,context,label,split`）。
+- 条件描述 `context_desc.json`（由 `haphom_growth_contexts.csv` 生成）；条件相似度 `src/knowledge/build_condition_sim.py` → `data/knowledge/condition_similarity.json`（yp 矩阵列-列相关，做检索的 readout-邻居）。
+- 模板 `support/task2/{DE,DIR}_template.py`（生长表型 yes/no；方向 sensitive/resistant；含 `readout_line_label` 让例子块显示 "Condition"）。
+```bash
+# retrieve: 读出列=context, gene-sim 换成条件相似度
+python cli.py de retrieve --data-csv ../../data/task2/haphom_growth_phenotype.csv --readout-col context \
+  --pert-sim ../../data/knowledge/perturbagen_similarity.json --gene-sim ../../data/knowledge/condition_similarity.json \
+  --out $R/t2de_retr.json --budget 10 --max-cases 500 --seed 0
+python cli.py de prompt --retrieval $R/t2de_retr.json --template ../../support/task2/DE_template.py \
+  --gene-desc ../../data/task2/context_desc.json --pert-desc ../../data/knowledge/gene_desc.json --out $R/t2de_prompts.txt
+# infer 同 §5; score 用 growth 模式:
+python src/eval/score.py --task growth --predictions $R/t2de_pred.txt --retrieval $R/t2de_retr.json \
+  --labels-csv data/task2/haphom_growth_phenotype.csv --readout-col context
+```
+DIR 用 `dir` + `DIR_template.py` + `--task growth_dir`（labels 用 `haphom_growth_direction.csv`）。**Task2-B（SGA 遗传互作）仍列为后续。**

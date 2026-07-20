@@ -51,6 +51,20 @@ _PATTERNS = {
         (0, [r"results in a decrease", r"\bdecrease[.:]\s+deletion", r"\bdecrease\b"]),
         (None, [r"insufficient evidence"]),
     ],
+    # Task2 growth phenotype (DE-analog: does deletion change growth y/n).
+    # NB: "causes a growth phenotype" also appears inside the *insufficient* sentence,
+    # so label-1 keys only on the affirmative "Yes. Deletion" starter.
+    "growth": [
+        (1, [r"\byes[.,]?\s+deletion"]),
+        (0, [r"does not cause a growth phenotype", r"\bno[.,]?\s+deletion"]),
+        (None, [r"insufficient evidence"]),
+    ],
+    # Task2 growth direction (sensitive/resistant).
+    "growth_dir": [
+        (1, [r"more resistant", r"\bresistant[.:]\s+deletion", r"\bresistant\b"]),
+        (0, [r"more sensitive", r"\bsensitive[.:]\s+deletion", r"\bsensitive\b"]),
+        (None, [r"insufficient evidence"]),
+    ],
 }
 
 
@@ -88,13 +102,18 @@ def load_predictions(path: str, task: str) -> List[Optional[int]]:
 
 # ---- ground truth -------------------------------------------------------------
 
-def load_truth(retrieval_json: str, labels_csv: str) -> List[Optional[int]]:
-    """True label per test_case, in retrieval order (None if not found)."""
+def load_truth(retrieval_json: str, labels_csv: str,
+               readout_col: str = "gene") -> List[Optional[int]]:
+    """True label per test_case, in retrieval order (None if not found).
+
+    ``readout_col`` names the readout column in the labels CSV (Task1 = "gene",
+    Task2 = "context"); the retrieval JSON always stores it under "gene".
+    """
     import csv
     label_map: Dict[Tuple[str, str], int] = {}
     with open(labels_csv, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            label_map[(row["pert"], row["gene"])] = int(row["label"])
+            label_map[(row["pert"], row[readout_col])] = int(row["label"])
     with open(retrieval_json, "r", encoding="utf-8") as f:
         retrieval = json.load(f)
     truth: List[Optional[int]] = []
@@ -115,7 +134,12 @@ def compute_metrics(preds: List[Optional[int]], truth: List[Optional[int]],
                     task: str) -> Dict:
     n = min(len(preds), len(truth))
     preds, truth = preds[:n], truth[:n]
-    pos_name, neg_name = ("Increase", "Decrease") if task == "dir" else ("DE", "non-DE")
+    pos_name, neg_name = {
+        "de": ("DE", "non-DE"),
+        "dir": ("Increase", "Decrease"),
+        "growth": ("phenotype", "no-phenotype"),
+        "growth_dir": ("Resistant", "Sensitive"),
+    }.get(task, ("pos", "neg"))
 
     # overall accuracy: abstain / missing-truth handling
     scored = [(p, t) for p, t in zip(preds, truth) if t is not None]
@@ -155,16 +179,18 @@ def compute_metrics(preds: List[Optional[int]], truth: List[Optional[int]],
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Score DE/DIR predictions")
-    ap.add_argument("--task", required=True, choices=["de", "dir"])
+    ap = argparse.ArgumentParser(description="Score DE/DIR/growth predictions")
+    ap.add_argument("--task", required=True, choices=["de", "dir", "growth", "growth_dir"])
     ap.add_argument("--predictions", required=True, help="predictions.txt from infer")
     ap.add_argument("--retrieval", required=True, help="retrieval JSON used to build the prompts")
-    ap.add_argument("--labels-csv", required=True, help="DE/DIR CSV with the true labels")
+    ap.add_argument("--labels-csv", required=True, help="CSV with the true labels")
+    ap.add_argument("--readout-col", default="gene",
+                    help="readout column in the labels CSV (Task1='gene', Task2='context')")
     ap.add_argument("--json", default=None, help="Optional path to write metrics JSON")
     args = ap.parse_args(argv)
 
     preds = load_predictions(args.predictions, args.task)
-    truth = load_truth(args.retrieval, args.labels_csv)
+    truth = load_truth(args.retrieval, args.labels_csv, readout_col=args.readout_col)
     if len(preds) != len(truth):
         print(f"[score] NOTE: #predictions ({len(preds)}) != #test_cases "
               f"({len(truth)}); scoring the first {min(len(preds), len(truth))} "

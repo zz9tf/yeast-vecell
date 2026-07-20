@@ -83,8 +83,14 @@ def _label_to_result(label: int, choices: List[str]) -> Optional[str]:
 
 def format_observations(pairs: List[List], pert_desc: Dict[str, str],
                         gene_desc: Dict[str, str], choices: Optional[List[str]],
-                        alias: Optional[Dict] = None, max_examples: int = 10) -> str:
-    """Build the few-shot "Examples" block using the pairs' TRUE labels."""
+                        alias: Optional[Dict] = None, max_examples: int = 10,
+                        readout_label: str = "Readout gene (ORF)",
+                        readout_desc_label: str = "Readout Gene Description") -> str:
+    """Build the few-shot "Examples" block using the pairs' TRUE labels.
+
+    ``readout_label`` / ``readout_desc_label`` let a task rename the readout entity
+    in each example (Task1 = "Readout gene (ORF)"; Task2 = "Condition (screen)").
+    """
     if not pairs:
         return "No similar experimental observations available for context."
 
@@ -93,16 +99,16 @@ def format_observations(pairs: List[List], pert_desc: Dict[str, str],
         # pairs are [pert, gene, label]; tolerate a legacy [pert, gene].
         pert2, gene2 = pair[0], pair[1]
         label = pair[2] if len(pair) > 2 else None
-        # look up descriptions by the raw (ORF) key; show a readable name.
+        # look up descriptions by the raw (ORF / condition) key; show a readable pert name.
         pdesc = get_description(pert2, pert_desc, "Perturbagen")
-        gdesc = get_description(gene2, gene_desc, "Gene")
+        gdesc = get_description(gene2, gene_desc, "Readout")
         pert2_show = display_name(pert2, alias) if alias else pert2
         obs_text = (
             f"Example {i + 1}:\n"
             f"- Perturbagen (deletion): {pert2_show}\n"
-            f"- Readout gene (ORF): {gene2}\n"
+            f"- {readout_label}: {gene2}\n"
             f"- Perturbagen Description: {pdesc}\n"
-            f"- Readout Gene Description: {gdesc}"
+            f"- {readout_desc_label}: {gdesc}"
         )
         if choices is not None and label is not None:
             result = _label_to_result(label, choices)
@@ -148,6 +154,9 @@ def generate_prompts(*, task: str, retrieval_json: str,
 
     choices_de = tmpl_vars.get("choices_de", [])
     choices_dir = tmpl_vars.get("choices_dir", [])
+    # readout-entity wording for the Examples block (Task2 overrides to "Condition").
+    readout_label = tmpl_vars.get("readout_line_label", "Readout gene (ORF)")
+    readout_desc_label = tmpl_vars.get("readout_desc_label", "Readout Gene Description")
     prompt_de = (tmpl_vars.get("prompt_yeast_DE", "")
                  or tmpl_vars.get("prompt_vcworld_DE", ""))
     prompt_dir = (tmpl_vars.get("prompt_yeast_DIR", "")
@@ -182,7 +191,9 @@ def generate_prompts(*, task: str, retrieval_json: str,
             context_short, context_desc = contexts[idx]
 
             obs = format_observations(retrieved_pairs, pert_desc, gene_desc,
-                                      choices, alias)
+                                      choices, alias,
+                                      readout_label=readout_label,
+                                      readout_desc_label=readout_desc_label)
 
             pert_show = display_name(pert, alias) if alias else pert
             filled = prompt_template.format(

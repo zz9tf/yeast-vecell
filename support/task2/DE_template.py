@@ -12,6 +12,10 @@ contexts = [
      "resistance) in that condition."),
 ]
 
+# Examples-block wording (read by stages/prompt.py) — readout is a condition, not a gene.
+readout_line_label = "Condition (screen)"
+readout_desc_label = "Condition Description"
+
 desc_pert = "description of the deleted gene (perturbagen)"
 desc_gene = "description of the growth condition / screen"
 desc_context = "description of the assay platform"

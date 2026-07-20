@@ -29,13 +29,15 @@ import numpy as np
 import pandas as pd
 
 
-def load_data(csv_file: str) -> Dict[str, List[dict]]:
+def load_data(csv_file: str, readout_col: str = "gene") -> Dict[str, List[dict]]:
+    """Load (pert, readout, label, split). ``readout_col`` is the readout column
+    name (Task1 = 'gene'; Task2 = 'context'); stored internally under 'gene'."""
     df = pd.read_csv(csv_file)
     data: Dict[str, List[dict]] = {"train": [], "test": []}
     for _, row in df.iterrows():
         item = {
             "pert": str(row["pert"]),
-            "gene": str(row["gene"]),
+            "gene": str(row[readout_col]),
             "label": int(row["label"]),
             "split": row["split"],
         }
@@ -232,8 +234,9 @@ def build_retrieval_results(*, data_csv: str, out_json: str,
                             budget: int = 10, seed: int = 0,
                             max_cases: Optional[int] = None,
                             case_split: str = "test",
-                            shuffle_labels: bool = False) -> None:
-    data = load_data(data_csv)
+                            shuffle_labels: bool = False,
+                            readout_col: str = "gene") -> None:
+    data = load_data(data_csv, readout_col=readout_col)
     train_data = data.get("train", [])
     eval_data = data.get(case_split, [])
 

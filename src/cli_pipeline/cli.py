@@ -71,6 +71,8 @@ def _add_retrieve_args(p: argparse.ArgumentParser) -> None:
                    help="Which split to generate retrieval for")
     p.add_argument("--shuffle-labels", action="store_true",
                    help="Ablation: randomize example labels (reproduces VCWorld's random-label bug)")
+    p.add_argument("--readout-col", default="gene",
+                   help="Readout column in --data-csv (Task1='gene', Task2 growth='context')")
 
 
 def _add_prompt_args(p: argparse.ArgumentParser) -> None:
@@ -175,6 +177,7 @@ def main(argv: list) -> int:
             pert_sim_json=args.pert_sim, gene_sim_json=args.gene_sim,
             budget=args.budget, seed=args.seed, max_cases=args.max_cases,
             case_split=args.case_split, shuffle_labels=args.shuffle_labels,
+            readout_col=args.readout_col,
         )
         return 0
 
