@@ -5,6 +5,9 @@ A white-box **virtual cell for *Saccharomyces cerevisiae***, adapting **VCWorld*
 predict transcriptomic responses to perturbations in a data-efficient, interpretable way.
 
 - **Reference implementation** analyzed & cloned at `../VCWorld`.
+- **Full pipeline spec (this project):** [`docs/pipeline.md`](docs/pipeline.md) — end-to-end
+  operational guide: data/knowledge → prepare → retrieve → prompt → infer (GPU on 8s-06) → score,
+  with exact commands, paths, params, and gotchas.
 - **VCWorld pipeline dissection:** [`docs/vcworld_pipeline.md`](docs/vcworld_pipeline.md) — exact
   inputs → processing → outputs for all 5 CLI stages, knowledge assets, and observations.
 - **Design / roadmap:** [`PLAN.md`](PLAN.md) — the yeast adaptation plan (human→yeast mapping, data
