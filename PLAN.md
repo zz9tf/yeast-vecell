@@ -154,27 +154,23 @@
 | **Qwen3-4B-Instruct-2507** | `Qwen/Qwen3-4B-Instruct-2507`（`infer`） | 4B | 轻量 | — |
 | **Qwen2.5-7B-Instruct** | `Qwen/Qwen2.5-7B-Instruct`（`infer`） | 7.6B | 主力开源 | — |
 | **Qwen2.5-14B-Instruct** | `Qwen/Qwen2.5-14B-Instruct`（`infer`） | 14B | **最强开源** | 0.65 |
-| **Gemini-2.5-Flash** | OpenRouter `google/gemini-2.5-flash`（`infer-api`） | API（"thinking"） | **最强总体** | 0.70 |
+| ~~Gemini-2.5-Flash~~ | ~~OpenRouter `infer-api`~~ | API | **本项目暂不用（无 API key，只跑本地）** | 0.70（论文参考） |
 
 **推理参数**（论文 B.4，与 CLI 默认一致，无需额外传）：`temperature=0.6`、`top_p=0.9`；输入 prompt
-统一约 **2600 tokens**；成本/延迟用 OpenRouter 监控。
+统一约 **2600 tokens**。
 
 **论文关键结论**：性能随模型推理能力单调上升 —— Llama3-8B (0.37) → Qwen2.5-14B (0.65) →
 Gemini-2.5-Flash (0.70)；作者据此断言"这个任务吃的是推理能力，不是模式匹配"。
-→ **对我们的启示**：优先跑 **Qwen2.5-14B**（开源天花板）+ **Gemini-2.5-Flash**（总体天花板）；
-Qwen3-4B / Qwen2.5-7B / Llama3-8B 作为**规模消融**（验证 yeast 上是否复现同样的"越强越准"趋势）。
+→ **对我们的启示（本地版）**：优先跑 **Qwen2.5-14B**（本地开源天花板）；Qwen2.5-7B / Qwen3-4B /
+Llama3.1-8B 作为**规模消融**（验证 yeast 上是否复现"越强越准"趋势）。Gemini 的 0.70 仅作论文对照，
+将来拿到 key 再补 `infer-api`。
 
-**怎么跑（pipeline 搭好后）**：
+**怎么跑（pipeline 搭好后，全本地）**：
 ```bash
-# 开源本地（默认 temp/top_p 已对齐）
+# 默认 temp/top_p 已对齐论文
 python cli.py de infer --model Qwen/Qwen2.5-14B-Instruct \
   --prompts out/cond_DE_prompts.txt --out out/cond_DE_pred_qwen14b.txt
-
-# Gemini via OpenRouter
-python cli.py de infer-api \
-  --api-url https://openrouter.ai/api/v1/chat/completions \
-  --api-model google/gemini-2.5-flash \
-  --prompts out/cond_DE_prompts.txt --out out/cond_DE_pred_gemini.txt
+# 规模消融：把 --model 换成 Qwen2.5-7B-Instruct / Qwen3-4B-Instruct-2507 / Llama-3.1-8B-Instruct
 ```
 **显存**：14B bf16 约需 ≥28GB（单卡 A100 40/80G 可跑，或多卡 `--device-map auto`）；4B/7B 单卡消费级即可。
 
@@ -197,14 +193,16 @@ python cli.py de infer-api \
 
 ---
 
-## 待定问题（需要你拍板）
+## 决策记录（2026-07-19）
 
-1. **扰动类型**：只做遗传（Deleteome，推荐）？还是也保留化学/药物轴以最大程度贴合 VCWorld？
-2. **上下文轴**：先单一参考条件（BY4741/YPD）？还是一上来就多条件/胁迫？
-3. **数据源**：直接用 Deleteome？还是接你 `yeast-rank-cross-lab` 里已有的矩阵？
-   （那些矩阵装的是扰动-响应还是表型？）
-4. **推理预算**：模型清单已定（Part C.5，对齐 VCWorld）。待你确认第一批优先级 —— 建议
-   Qwen2.5-14B（本地）+ Gemini-2.5-Flash（OpenRouter API，需 key）；小模型做规模消融。
+1. **扰动类型** ✅ **先做遗传**（敲除 / TF 诱导），化学轴以后再说。
+2. **上下文轴** ✅ **先按多条件设计**（多数据集/多扰动类型当上下文），之后再补单条件专项跑。
+3. **数据源** ✅ **尽量都用上**（Deleteome + IDEA + Hughes + 你的矩阵），多跑分数再决定取舍。
+   数据源的具体用法见 [`docs/data_sources.md`](docs/data_sources.md)，跨源细节 chat 里继续定。
+4. **推理** ✅ **只用本地模型**（Qwen2.5-14B 主力，7B/4B/Llama3.1-8B 做规模消融；无 API/Gemini）。
+
+**当前唯一未定 = 跨源数据怎么用**（`docs/data_sources.md` §跨源使用方案 1–5，正在讨论）；
+其中 **源 4（你的矩阵）内容待你确认**（是扰动-表达还是扰动-生长表型）。
 
 ---
 
