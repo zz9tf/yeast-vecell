@@ -115,11 +115,14 @@
 - 产出 `{condition}_DE.csv`、`{condition}_DIR.csv`，列 `pert, gene, label, split`。
 
 **Phase 2 — 知识构建器（真正的工作量）**
+- ⚠️ **VCWorld 的 `gene_output.json` / `drug_simp.json` / 两个相似度 JSON 全是人类的，一律弃用。**
+  下面所有描述/相似度**都从酵母源自建**，统一按**系统 ORF 名**键（`YFL039C`）。
 - `build_gene_sim.py` → `results_close_gene.json`：对每个 ORF，从 STRING/BioGRID/YeastNet
   （+ GO 语义相似）取排序后的共功能邻居，带 `direct_neighbors` / `two_hop`。
 - `build_pert_sim.py` → `perturbagen_similarity.json`：对每个被敲基因，用 SGA 遗传互作 profile 相关性
   和/或 GO/功能相似取相似扰动子。
-- `build_descriptions.py` → `gene_desc.json`（SGD "Description" + GO BP/MF/CC + 别名），复用为扰动子描述。
+- `build_descriptions.py` → `gene_desc.json`：**酵母源** SGD "Description" + GO BP/MF/CC（*S. cerevisiae*）
+  + UniProt S288C（taxon 559292）+ 别名；一份同时当读出基因描述和扰动子描述。
 - `build_regulatory.py` → `tf_targets.json`（来自 YEASTRACT，用于让 DIR 推理机制化）。
 - 编写 `support/DE_template.py` / `DIR_template.py`：把 `cell_lines` 换成**条件**列表（菌株 + 培养基 +
   活跃通路备注）；把 5 步脚手架改写成酵母术语（敲除 → 上位/通路 → TF（YEASTRACT）→ 靶 ORF → 方向）。
