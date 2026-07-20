@@ -33,21 +33,21 @@
 > 填法：把主结果数字填进「结果」列；「原始输出」列填该次推理的预测文件路径（**原始结果必须留存**，
 > 以便后续拆解）；顺带记 run_id 与日期。主指标默认用 **Acc**（后续拆解时再补 F1/MCC/方向Acc 等）。
 
-### T1a — 表达 DE（Deleteome）
-| 模型 | 结果(Acc) | 原始输出(预测文件) | run_id | 日期 |
+### T1a — 表达 DE（Deleteome, 500 例）
+| 模型 | 结果(F1 / MCC / Acc, 已答%) | 原始输出(预测文件) | run_id | 日期 |
 |---|---|---|---|---|
-| **Qwen2.5-14B** | ⬜ | ⬜ | ⬜ | ⬜ |
-| Qwen2.5-7B | ⬜ | ⬜ | ⬜ | ⬜ |
-| Qwen3-4B | ⬜ | ⬜ | ⬜ | ⬜ |
-| Llama3.1-8B | ⬜ | ⬜ | ⬜ | ⬜ |
+| **Qwen2.5-14B** | **F1 .71 / MCC .42** / Acc .66 (77%) | DE_pred_qwen14b.txt | t1a-qwen14b-b8-truelab-v1 | 07-20 |
+| Qwen2.5-7B | F1 .62 / MCC .25 / Acc .62 (76%) | DE_pred_qwen7b.txt | t1a-qwen7b-b16-truelab-v1 | 07-20 |
+| Qwen3-4B | F1 .56 / MCC .17 / Acc .34 (46%) | DE_pred_qwen4b.txt | t1a-qwen4b-b16-truelab-v1 | 07-20 |
+| Llama3.1-8B | F1 .64 / MCC .28 / Acc .44 (56%) | DE_pred_llama8b.txt | t1a-llama8b-b16-truelab-v1 | 07-20 |
 
-### T1b — 表达 DIR（Deleteome，DE 命中子集）
-| 模型 | 结果(方向Acc) | 原始输出(预测文件) | run_id | 日期 |
+### T1b — 表达 DIR（Deleteome，DE 命中子集, 500 例/471 有证据）
+| 模型 | 结果(F1 / MCC / 方向Acc, 已答%) | 原始输出(预测文件) | run_id | 日期 |
 |---|---|---|---|---|
-| **Qwen2.5-14B** | ⬜ | ⬜ | ⬜ | ⬜ |
-| Qwen2.5-7B | ⬜ | ⬜ | ⬜ | ⬜ |
-| Qwen3-4B | ⬜ | ⬜ | ⬜ | ⬜ |
-| Llama3.1-8B | ⬜ | ⬜ | ⬜ | ⬜ |
+| **Qwen2.5-14B** | ⏳ DIR 生成中（DE 已完成） | DIR_pred_qwen14b.txt | t1b-qwen14b-b8-truelab-v1 | 07-20 |
+| Qwen2.5-7B | F1 .63 / MCC .29 / Acc .63 (97%) | DIR_pred_qwen7b.txt | t1b-qwen7b-b16-truelab-v1 | 07-20 |
+| Qwen3-4B | **F1 .69 / MCC .38** / Acc .72 (82%) | DIR_pred_qwen4b.txt | t1b-qwen4b-b16-truelab-v1 | 07-20 |
+| Llama3.1-8B | F1 .61 / MCC .31 / Acc .62 (80%) | DIR_pred_llama8b.txt | t1b-llama8b-b16-truelab-v1 | 07-20 |
 
 ### T2A-DE — 生长有无表型（yp_matrix_z_haphom）
 | 模型 | 结果(Acc) | 原始输出(预测文件) | run_id | 日期 |
@@ -96,5 +96,11 @@
 ## 外部参考（VCWorld 人类 GeneTAK · C32 · 仅看趋势，不可与酵母直接比）
 Llama3-8B `0.37` → Qwen2.5-14B `0.65` → Gemini-2.5-Flash `0.70`（我们不跑 Gemini）。
 
+## 首轮观察（T1a/T1b, 500 例, v1 prompt, 真标签检索）
+- **DE 复现"越强越准"**：MCC 随模型能力上升 —— Qwen3-4B .17 < Qwen2.5-7B .25 ≈ Llama3.1-8B .28 < **Qwen2.5-14B .42**，与 VCWorld 人类结论一致。
+- **DIR 普遍强于 DE**（MCC .29–.38），且都过了随机；小模型（尤其 4B）DE 弃权高（46%）拖累整体 Acc，但已答准确率不低（.74–.86）。
+- 均为**采样 500 例**、v1 prompt——prompt 分支 A/B、规模全量、baseline 属后续轮次。
+
 ## Changelog
 - 2026-07-20：改成"每模型一个填空、保留原始结果"的结构；settings 拆解留后续轮次。
+- 2026-07-20：填入首轮 T1a/T1b（4 模型；14b DIR 生成中）。
