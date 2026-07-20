@@ -44,6 +44,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--top-p", type=float, default=0.9)
     ap.add_argument("--gpu-mem", type=float, default=0.90)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--enforce-eager", action="store_true",
+                    help="disable CUDA graphs (slower; only needed if graph capture fails)")
     args = ap.parse_args(argv)
 
     from vllm import LLM, SamplingParams
@@ -65,7 +67,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_mem,
-              max_model_len=args.max_model_len, seed=args.seed)
+              max_model_len=args.max_model_len, seed=args.seed,
+              enforce_eager=args.enforce_eager)
     sp = SamplingParams(temperature=args.temperature, top_p=args.top_p,
                         max_tokens=args.max_new_tokens, seed=args.seed)
 
