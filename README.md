@@ -9,6 +9,8 @@ predict transcriptomic responses to perturbations in a data-efficient, interpret
   inputs → processing → outputs for all 5 CLI stages, knowledge assets, and observations.
 - **Design / roadmap:** [`PLAN.md`](PLAN.md) — the yeast adaptation plan (human→yeast mapping, data
   sources, phased implementation, open questions).
+- **Results tracking:** [`RESULTS.md`](RESULTS.md) — scoreboard of the N local models + baselines
+  across every task/subtask (fill in as runs land).
 
 ## Status
 Planning stage. Next actions and open questions are at the bottom of `PLAN.md`.
