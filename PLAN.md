@@ -123,6 +123,10 @@
   和/或 GO/功能相似取相似扰动子。
 - `build_descriptions.py` → `gene_desc.json`：**酵母源** SGD "Description" + GO BP/MF/CC（*S. cerevisiae*）
   + UniProt S288C（taxon 559292）+ 别名；一份同时当读出基因描述和扰动子描述。
+  - **种子**：`yeast-rank-cross-lab/data/gene_function_descriptions.csv`（4554 基因，系统 ORF 名键，
+    SGD 质量）—— 但只覆盖 Deleteome 读出基因的 72%（缺 1729，含 TFC3/EFB1/CDC19 等 characterized）。
+  - **补齐**：从完整 SGD 全基因描述补到全 ORF；仍缺的用 `基因名 + GO term` 兜底。
+  - **须复核扰动子覆盖**（扰动子是标准名，需别名表 join 后确认每条 prompt 都有扰动子描述）。
 - `build_regulatory.py` → `tf_targets.json`（来自 YEASTRACT，用于让 DIR 推理机制化）。
 - 编写 `support/DE_template.py` / `DIR_template.py`：把 `cell_lines` 换成**条件**列表（菌株 + 培养基 +
   活跃通路备注）；把 5 步脚手架改写成酵母术语（敲除 → 上位/通路 → TF（YEASTRACT）→ 靶 ORF → 方向）。
