@@ -1,0 +1,81 @@
+{
+  "model": "qwen4b",
+  "tasks": {
+    "T1a-DE": {
+      "macro_f1": {
+        "mean": 0.6172,
+        "std": 0.0021
+      },
+      "mcc": {
+        "mean": 0.2705,
+        "std": 0.0039
+      },
+      "acc_overall": {
+        "mean": 0.349,
+        "std": 0.0018
+      },
+      "answered_pct": {
+        "mean": 46.1,
+        "std": 0.216
+      },
+      "n_test": 245372
+    },
+    "T1b-DIR": {
+      "macro_f1": {
+        "mean": 0.6628,
+        "std": 0.0017
+      },
+      "mcc": {
+        "mean": 0.3256,
+        "std": 0.0035
+      },
+      "acc_overall": {
+        "mean": 0.5721,
+        "std": 0.0012
+      },
+      "answered_pct": {
+        "mean": 81.2333,
+        "std": 0.3316
+      },
+      "n_test": 37787
+    },
+    "T2A-DE": {
+      "macro_f1": {
+        "mean": 0.621,
+        "std": 0.0011
+      },
+      "mcc": {
+        "mean": 0.2564,
+        "std": 0.0028
+      },
+      "acc_overall": {
+        "mean": 0.5827,
+        "std": 0.0005
+      },
+      "answered_pct": {
+        "mean": 87.9933,
+        "std": 0.0613
+      },
+      "n_test": 58980
+    },
+    "T2A-DIR": {
+      "macro_f1": {
+        "mean": 0.4786,
+        "std": 0.0025
+      },
+      "mcc": {
+        "mean": 0.1064,
+        "std": 0.0058
+      },
+      "acc_overall": {
+        "mean": 0.7288,
+        "std": 0.001
+      },
+      "answered_pct": {
+        "mean": 96.9767,
+        "std": 0.066
+      },
+      "n_test": 41373
+    }
+  }
+}
