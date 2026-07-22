@@ -36,7 +36,7 @@
 | **Qwen2.5-14B** | ⬜ | ⬜ | ⬜ | ⬜ | DE_pred_qwen14b_s{0,1,2}.txt |
 | Qwen2.5-7B | ⬜ | ⬜ | ⬜ | ⬜ | DE_pred_qwen7b_s* |
 | Qwen3-4B | ⬜ | ⬜ | ⬜ | ⬜ | DE_pred_qwen4b_s* |
-| Llama3.1-8B | ⬜ | ⬜ | ⬜ | ⬜ | DE_pred_llama8b_s* |
+| Llama3.1-8B | **.613±.002** | **.234±.004** | .373±.001 | 49.5% | DE_pred_llama8b_s* |
 | _Majority_ | ⬜ | — | ⬜ | — | — |
 | _No-retrieval LLM(14B)_ | ⬜ | ⬜ | ⬜ | ⬜ | — |
 
@@ -46,7 +46,7 @@
 | **Qwen2.5-14B** | ⬜ | ⬜ | ⬜ | ⬜ | DIR_pred_qwen14b_s* |
 | Qwen2.5-7B | ⬜ | ⬜ | ⬜ | ⬜ | DIR_pred_qwen7b_s* |
 | Qwen3-4B | ⬜ | ⬜ | ⬜ | ⬜ | DIR_pred_qwen4b_s* |
-| Llama3.1-8B | ⬜ | ⬜ | ⬜ | ⬜ | DIR_pred_llama8b_s* |
+| Llama3.1-8B | **.583±.000** | **.238±.003** | .461±.002 | 78.8% | DIR_pred_llama8b_s* |
 | _Majority(升)_ | ⬜ | — | ⬜ | — | — |
 | _YEASTRACT 符号规则_ | ⬜ | ⬜ | ⬜ | — | — |
 
@@ -56,7 +56,7 @@
 | **Qwen2.5-14B** | ⬜ | ⬜ | ⬜ | ⬜ | t2de_pred_qwen14b_s* |
 | Qwen2.5-7B | ⬜ | ⬜ | ⬜ | ⬜ | t2de_pred_qwen7b_s* |
 | Qwen3-4B | ⬜ | ⬜ | ⬜ | ⬜ | t2de_pred_qwen4b_s* |
-| Llama3.1-8B | ⬜ | ⬜ | ⬜ | ⬜ | t2de_pred_llama8b_s* |
+| Llama3.1-8B | **.581±.001** | **.164±.002** | .477±.002 | 70.3% | t2de_pred_llama8b_s* |
 | _Majority_ | ⬜ | — | ⬜ | — | — |
 
 ### T2A-DIR — 生长适合度：敏感/抗
@@ -65,7 +65,7 @@
 | **Qwen2.5-14B** | ⬜ | ⬜ | ⬜ | ⬜ | t2dir_pred_qwen14b_s* |
 | Qwen2.5-7B | ⬜ | ⬜ | ⬜ | ⬜ | t2dir_pred_qwen7b_s* |
 | Qwen3-4B | ⬜ | ⬜ | ⬜ | ⬜ | t2dir_pred_qwen4b_s* |
-| Llama3.1-8B | ⬜ | ⬜ | ⬜ | ⬜ | t2dir_pred_llama8b_s* |
+| Llama3.1-8B | .455±.001 | **.070±.006** | .736±.001 | 98.2% | t2dir_pred_llama8b_s* |
 | _Majority_ | ⬜ | — | ⬜ | — | — |
 
 ---
