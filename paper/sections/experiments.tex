@@ -1,0 +1,58 @@
+\section{Experiments}
+
+% 通用说明（放在本节开头，不进具体RQ小节）：4本地模型(Qwen2.5-14B/7B, Qwen3-4B,
+% Llama3.1-8B) x 3 seed(0/1/2), vLLM推理, temp=0.6/top_p=0.9；主指标macro-F1(mean+-std)，
+% 并列报MCC/Acc/Answered%；主矩阵16/16已跑满（4模型x4任务x3seed，见 RESULTS.md）。
+% ⚠️ 写作时注意：docs/task_results.md 里 A/B prompt消融变体、部分训练型ML baseline
+% 仍在跑/可能还没定稿（其他agent在补），下面每个RQ点名的具体数字，正文填写前要回去确认
+% 是否已经从 ⬜ 变成实数——骨架阶段先只写"要用哪张表"，不要把还没定的数字写死。
+
+\subsection{RQ1: Does the transcriptomic-readout scaling trend reproduce VCWorld? (T1)}
+% - 展示表：RESULTS.md T1a-DE主结果表 + T1b-DIR主结果表（4模型x3seed mean+-std，
+%   Macro-F1/MCC/Acc/Answered%），以及"全模型对比"表里T1a/T1b那两行的"随模型规模?"结论列。
+% - 核心论点：macro-F1/MCC随模型规模(4B/7B/8B<14B)单调提升，复现VCWorld在人类GeneTAK上的
+%   "越强越准"（PLAN.md Part C.5引用的Llama3-8B 0.37->Qwen2.5-14B 0.65->Gemini 0.70趋势，
+%   注明"趋势可比、绝对分数不可直接比"）。
+% - 附带注意Qwen3-4B在T1b-DIR上反超Qwen2.5-7B/Llama3.1-8B这个"代际反超参数量"的现象
+%   （RESULTS.md"分析"一节已有描述），以及它对应的高弃权率（Answered%低），这是需要如实
+%   报告的细节，不要简化成单纯的"规模单调"叙事。
+% - 补充：Task 1"生物学意义上更细分解"里的三个子问题（1跳vs2跳因果距离、ESR vs 基因特异、
+%   复合物内vs跨复合物，docs/task_definitions.md）如果有实测数字（docs/task_results.md
+%   "Task 1分解1/2/3"），可以作为RQ1的子小节或独立RQ，视数字是否定稿再决定是否单列。
+
+\subsection{RQ2: Does the growth-fitness-readout follow the same trend? (T2A) — the key negative result}
+% - 展示表：RESULTS.md T2A-DE主结果表 + T2A-DIR主结果表，以及"全模型对比"表T2A两行的
+%   "随模型规模?"结论列（均标"❌"）。
+% - 核心论点（本文关键负结果）：T2A-DE最优是7B（.645）、14B反而掉到第3（.615）；
+%   T2A-DIR四个模型MCC全部挤在.07-.11（近随机），且不随规模单调——与T1形成直接对照。
+% - 机制解释假说（RESULTS.md"分析"一节现成论证，正文展开时引用）：知识图谱把"调控/表达
+%   关系"（YEASTRACT符号、共表达邻居）编码得远好于"化学-遗传适合度关系"，后者更依赖代谢
+%   通路的定量剂量效应，纯文本检索证据难覆盖。
+% - 需要交代T2A-DIR的类别不均衡（抗25%/敏感75%，比T1更极端）以及为什么这不能解释关键
+%   负结果本身（macro-F1/MCC已经是不均衡鲁棒指标，四模型仍近随机，不是不均衡在骗人）。
+% - 补充：Task 2A"生物学意义上更细分解"里按胁迫机制大类分组、直接靶点vs旁路基因、
+%   剂量-响应系列三个子问题（docs/task_definitions.md），若已有实测数字（docs/task_results.md
+%   "Task 2A分解"），可作为诊断"负结果具体卡在哪类生物学机制"的子小节。
+
+\subsection{RQ3: Ablations — retrieval, biocontext, CoT, and prompt design}
+% - 标准基线+消融套件（Random / Majority / Retrieval-only / w/o Biocontext / w/o CoT），
+%   跨T1a-DE/T1b-DIR/T2A-DE/T2A-DIR四张表，统一用Qwen2.5-14B代表模型（T1）/待定代表模型
+%   （T2A，docs/task_definitions.md Task 2A末尾"代表模型待定"）。展示表：RESULTS.md +
+%   docs/task_results.md对应消融行，方法论引用 docs/prompt_optimization.md"标准基线+消融
+%   套件"一节，不在正文重复方法论细节。
+% - A(机制结构化)/B(校准) prompt分支消融——写作时先去 docs/task_results.md 核实这两个
+%   变体的数字是否已经从⬜填上真实结果（任务说明里提到其他agent正在补，写这节前必须核实
+%   当前状态，不能想当然按"已完成"处理）。
+% - 训练型传统ML对照——GAT/GenKI/KGE-TGI/MultiXrank（T1），NRBdMF/SRMF/GAT/MultiXrank/
+%   弹性网络（T2A），方法论/引用见 docs/prompt_optimization.md"变体4"一节。docs/task_results.md
+%   里已有GAT/GenKI/KGE-TGI/MultiXrank在T1a-DE上的实测数字（含一条值得单独讨论的
+%   Gene-majority查表基线全面超过GAT的负结果），T2A侧的训练型对照进度需要写作时核实。
+
+\subsection{RQ4: Interpretability check — does the LLM's cited TF$\to$target logic match YEASTRACT ground truth?}
+% - 对应 PLAN.md Phase 5"可解释性检查（VCWorld的核心卖点）"：抽取T1b-DIR推理链里模型引用
+%   的TF->靶基因桥接，核对是否匹配YEASTRACT ground truth的激活子/抑制子符号，报告"机制
+%   一致率"。这是白盒路线相对黑盒模型的核心卖点（不仅预测准，还能给出可核查的因果链），
+%   RQ1-2只回答"准不准"，这个RQ回答"推理过程是不是真的在用对的机制"。
+% - **状态待确认**：写作时需要先确认这项分析是否已经跑过/有产出文件，PLAN.md目前只把它
+%   列在Phase 5待办里，未在RESULTS.md/task_results.md里看到对应的实测数字——如果确实
+%   还没跑，这一节在骨架阶段应保留但正文填写前需要先补这项分析，不能凭空编造"一致率"数字。

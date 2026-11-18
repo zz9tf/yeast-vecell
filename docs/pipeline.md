@@ -104,7 +104,7 @@ python cli.py de prompt --retrieval ../../data/runs/DE_retr500.json \
 
 单模型脚本 `data/runs/run_eval.sh <hub_dirname> <gpu> <tag> <batch>`（内部对 DE、DIR 各跑一次 infer，log 落 `eval_<tag>.log`）：
 ```bash
-task run 'yvc_eval_qwen14b' 'ssh h100-8s-06 "bash /home/zhengz2/yeast-vecell/data/runs/run_eval.sh \
+task run 'yvc_eval_qwen14b' 'ssh h100-8s-06 "bash /home/zhengz2/projects/yeast-vecell/data/runs/run_eval.sh \
   models--Qwen--Qwen2.5-14B-Instruct 0 qwen14b 8"'
 ```
 4 模型并行占 GPU0-3。模型：`Qwen2.5-14B/7B-Instruct`、`Qwen3-4B-Instruct-2507`、`NousResearch/Meta-Llama-3.1-8B-Instruct`(官方 Llama gated 故用免 gate 镜像)。注意 NFS 加载慢(~60s/shard)。产出 `DE_pred_<tag>.txt`/`DIR_pred_<tag>.txt`（块间 80×`=` 分隔，`--- Query for Prompt N ---`）。

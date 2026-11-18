@@ -97,7 +97,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-RANK_CROSS_LAB = "/home/zhengz2/yeast-rank-cross-lab"  # READ-ONLY, never write here.
+RANK_CROSS_LAB = "/home/zhengz2/projects/yeast-rank-cross-lab"  # READ-ONLY, never write here.
 DEFAULT_MATRIX = f"{RANK_CROSS_LAB}/data/folder8_raw/yp_matrix_z_haphom_20221025.txt"
 DEFAULT_META = f"{RANK_CROSS_LAB}/data/folder8_raw/yp_screens_haphom_20221025.txt"
 HET_MATRIX = f"{RANK_CROSS_LAB}/data/folder8_raw/yp_het/yp_matrix_het_z_20221018.txt"

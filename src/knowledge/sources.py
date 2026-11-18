@@ -29,7 +29,7 @@ _CANDIDATES = {
     "sgd_features": (
         "YEAST_SGD_FEATURES",
         [
-            "/home/zhengz2/yeast-rank-cross-lab/data/SGD_features.tab",
+            "/home/zhengz2/projects/yeast-rank-cross-lab/data/SGD_features.tab",
             "/home/zhengz2/MiniShare/mini1/h100/public/Yeast/yeast_inputs/sgd/SGD_features.tab",
             os.path.join(RAW_DIR, "SGD_features.tab"),
         ],
@@ -37,7 +37,7 @@ _CANDIDATES = {
     "gaf": (
         "YEAST_SGD_GAF",
         [
-            "/home/zhengz2/yeast-rank-cross-lab/data/external/sgd_go_annotations.gaf.gz",
+            "/home/zhengz2/projects/yeast-rank-cross-lab/data/external/sgd_go_annotations.gaf.gz",
             "/home/zhengz2/MiniShare/mini1/h100/public/Yeast/yeast_inputs/sgd/gene_association.sgd",
             os.path.join(RAW_DIR, "sgd_go_annotations.gaf.gz"),
         ],
@@ -52,7 +52,7 @@ _CANDIDATES = {
     "seed_desc": (
         "YEAST_SEED_DESC",
         [
-            "/home/zhengz2/yeast-rank-cross-lab/data/gene_function_descriptions.csv",
+            "/home/zhengz2/projects/yeast-rank-cross-lab/data/gene_function_descriptions.csv",
         ],
     ),
     "deleteome": (

@@ -65,6 +65,24 @@ _PATTERNS = {
         (0, [r"more sensitive", r"\bsensitive[.:]\s+deletion", r"\bsensitive\b"]),
         (None, [r"insufficient evidence"]),
     ],
+    # Task2B genetic-interaction DE-analog (does the gene pair interact at all).
+    # NB: "shows a significant genetic interaction" also appears inside the
+    # *insufficient* sentence, so label-1 keys only on the affirmative "Yes."
+    # starter (mirrors the "growth" task's same guard against its abstain sentence).
+    "sga": [
+        (1, [r"\byes[.,]?\s+this gene pair"]),
+        (0, [r"does not show a significant genetic interaction", r"\bno[.,]?\s+this gene pair"]),
+        (None, [r"insufficient evidence"]),
+    ],
+    # Task2B genetic-interaction DIR-analog (sign: negative/aggravating vs
+    # positive/alleviating). Same abstain-sentence guard: match the specific
+    # "(synthetic lethal/sick)" / "(alleviating/suppressive)" phrasing or the
+    # "Negative./Positive." sentence starter before falling back to the bare word.
+    "sga_dir": [
+        (1, [r"positive \(alleviating", r"\bpositive[.:]\s+the double deletion", r"\bpositive\b"]),
+        (0, [r"negative \(synthetic lethal", r"\bnegative[.:]\s+the double deletion", r"\bnegative\b"]),
+        (None, [r"insufficient evidence"]),
+    ],
 }
 
 
@@ -139,6 +157,8 @@ def compute_metrics(preds: List[Optional[int]], truth: List[Optional[int]],
         "dir": ("Increase", "Decrease"),
         "growth": ("phenotype", "no-phenotype"),
         "growth_dir": ("Resistant", "Sensitive"),
+        "sga": ("GI", "non-GI"),
+        "sga_dir": ("Positive", "Negative"),
     }.get(task, ("pos", "neg"))
 
     # overall accuracy: abstain / missing-truth handling
@@ -180,7 +200,8 @@ def compute_metrics(preds: List[Optional[int]], truth: List[Optional[int]],
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Score DE/DIR/growth predictions")
-    ap.add_argument("--task", required=True, choices=["de", "dir", "growth", "growth_dir"])
+    ap.add_argument("--task", required=True,
+                    choices=["de", "dir", "growth", "growth_dir", "sga", "sga_dir"])
     ap.add_argument("--predictions", required=True, help="predictions.txt from infer")
     ap.add_argument("--retrieval", required=True, help="retrieval JSON used to build the prompts")
     ap.add_argument("--labels-csv", required=True, help="CSV with the true labels")

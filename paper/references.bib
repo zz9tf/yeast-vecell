@@ -1,0 +1,110 @@
+% 核心引用占位。已确认相关、字段基本可信的条目在前；其余标 FIXME 待补充调研或核对。
+% 正式提交前全部要用 PubMed/DOI/arXiv 官方页面核对一遍字段（作者全名、卷期页码等）。
+
+@article{vcworld2026,
+  title={VCWorld: A Biological World Model for Virtual Cell Simulation},
+  journal={arXiv preprint arXiv:2512.00306},
+  year={2026},
+  note={ICLR 2026. 本文直接移植/对标的上游工作，见 PLAN.md Part A/docs/vcworld_pipeline.md。}
+}
+
+@article{kemmeren2014,
+  title={Large-Scale Genetic Perturbations Reveal Regulatory Networks and an Abundance of
+    Gene-Specific Repressors},
+  author={Kemmeren, Patrick and others},
+  journal={Cell},
+  volume={157},
+  number={3},
+  pages={740--752},
+  year={2014},
+  doi={10.1016/j.cell.2014.02.054},
+  note={Deleteome，T1"扰动->表达"的标签源，见 docs/data_sources.md 源1。}
+}
+
+@article{hillenmeyer2008,
+  title={The Chemical Genomic Portrait of Yeast: Uncovering a Phenotype for All Genes},
+  author={Hillenmeyer, Maureen E. and others},
+  journal={Science},
+  volume={320},
+  number={5874},
+  pages={362--365},
+  year={2008},
+  doi={10.1126/science.1150021},
+  note={T2A"扰动->生长表型"的标签源（HOP库/haphom矩阵），见 docs/data_sources.md 源4/
+    docs/task_definitions.md Task 2A。}
+}
+
+@article{yeastract,
+  title={YEASTRACT: an upgraded database for the analysis of transcription regulatory
+    associations in Saccharomyces cerevisiae},
+  journal={Nucleic Acids Research},
+  note={TF->靶基因带符号(activates/represses)调控网络，T1-DIR推理脚手架第3/4步的核心
+    证据源，见 PLAN.md Part B映射表。FIXME：核对具体年份/卷期/作者，门户有多次版本迭代
+    （YEASTRACT/YEASTRACT+），需要确认引用的是哪一版。}
+}
+
+@article{costanzo2016,
+  title={A Global Genetic Interaction Network Maps a Wiring Diagram of Cellular Function},
+  author={Costanzo, Michael and others},
+  journal={Science},
+  volume={353},
+  number={6306},
+  year={2016},
+  doi={10.1126/science.aaf1420},
+  note={SGA全基因组遗传互作网络，本文perturbagen_similarity.json(pert-sim检索)来源，
+    也是候选T2B(遗传互作)任务的标签源，见 docs/task_definitions.md Task 2B。}
+}
+
+% ---- 以下 FIXME：已在项目文档里出现，但字段未核实/未找到权威条目，写正文前需补充 ----
+
+@misc{string_fixme,
+  title={STRING: functional protein association networks},
+  note={FIXME：需补充具体版本(v12)对应的论文条目，本文gene-sim(results_close_gene.json)
+    来源，combined_score>=700阈值，见 docs/pipeline.md \S1。}
+}
+
+@misc{biogrid_fixme,
+  title={BioGRID: a general repository for interaction datasets},
+  note={FIXME：需补充论文条目；PLAN.md Part B映射表里与STRING并列的酵母共功能网络来源
+    候选，是否在最终pipeline里实际用到需要核实（docs/pipeline.md \S1目前只列了STRING）。}
+}
+
+@misc{hughes2000_fixme,
+  title={Functional Discovery via a Compendium of Expression Profiles},
+  note={FIXME：Hughes et al., Cell 2000，见 docs/data_sources.md 源3，本文候选的跨实验室
+    泛化测试集，尚未确认是否接入正文实验。}
+}
+
+@misc{hackett2020_fixme,
+  title={Learning Causal Networks using Inducible Transcription Factors and
+    Transcriptome-wide Time Series},
+  note={FIXME：Hackett et al., Mol. Syst. Biol. 2020 (IDEA数据集)，doi
+    10.15252/msb.20199174，见 docs/data_sources.md 源2，候选的功能获得(gain-of-function)
+    互补数据集，尚未接入正文实验。}
+}
+
+@misc{gasch2000_fixme,
+  title={Genomic Expression Programs in the Response of Yeast Cells to Environmental
+    Changes},
+  note={FIXME：Gasch et al., Mol. Biol. Cell 2000，ESR基因集合定义，用于 T1"生物学意义上
+    的更细分解"里ESR vs 基因特异响应子问题，见 docs/task_definitions.md。}
+}
+
+@misc{cyc2008_fixme,
+  title={Up-to-date Catalogues of Yeast Protein Complexes},
+  note={FIXME：Pu et al., Nucleic Acids Research 2009 (CYC2008复合物数据库)，用于T1/T2B
+    "复合物内vs跨复合物"子问题，见 docs/task_definitions.md。}
+}
+
+@misc{costanzo2016_baryshnikova_fixme,
+  title={Quantitative analysis of fitness and genetic interactions in yeast on a genome
+    scale},
+  note={FIXME：Baryshnikova et al., Nat. Methods 2010，定量SGA评分方法/复合物分层，
+    T2B候选子问题引用，见 docs/task_definitions.md Task 2B。}
+}
+
+@misc{ogee_fixme,
+  title={OGEE: an online gene essentiality database},
+  note={FIXME：Chen et al., 用于候选Task 3(基因必需性预测)的外部benchmark，见
+    docs/task_definitions.md Task 3。}
+}

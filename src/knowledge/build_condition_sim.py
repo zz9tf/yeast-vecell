@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-YP = "/home/zhengz2/yeast-rank-cross-lab/data/folder8_raw/yp_matrix_z_haphom_20221025.txt"
+YP = "/home/zhengz2/projects/yeast-rank-cross-lab/data/folder8_raw/yp_matrix_z_haphom_20221025.txt"
 CTX = os.path.join(REPO, "data", "task2", "haphom_growth_contexts.csv")
 OUT = os.path.join(REPO, "data", "knowledge", "condition_similarity.json")
 TOPN = 25

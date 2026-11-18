@@ -22,19 +22,44 @@ INPUT DATA (read-only; lives in the separate ``yeast-rank-cross-lab`` repo):
     papers report gene-level networks derived from allele-level E-MAPs.
 
   ⚠️ **This local matrix is NOT the full genome-scale ~23M-pair Costanzo
-  2016 network** (that full network's ~0.8% GI-positive rate is cited in
-  ``docs/task_definitions.md`` Task 2B "6. 怎么说明结果更好" from the paper
-  text, not from this file). This file is a smaller query x array E-MAP
-  subset (4,939 query genes x 4,450 array genes after gene-level collapse,
-  ~10.0M of 22.0M gene-pair cells measured, i.e. 45.5% coverage) already
-  enriched for genetic-interaction screening design -- empirically **7.15%**
-  of measured gene pairs clear the |eps| >= 0.08 threshold here (not 0.8%).
-  Treat the ~0.8%/99.2% figure in the task-definition doc as describing the
-  full published network's rarity, and this builder's ~7%/93% as the rarity
-  *within this locally-available subset* -- both numbers are real, they just
-  describe different populations. This discrepancy should be reconciled in
-  ``docs/task_definitions.md``/``docs/data_sources.md`` once this builder is
-  reviewed (not done automatically here, out of scope for this script).
+  2016 network, and is NOT a random/representative sample of it.**
+  RECONCILED 2026-07-22 (see ``docs/task_definitions.md`` Task 2B "6. 怎么说明
+  结果更好" for the full writeup) -- verified by inspecting the row/column
+  headers directly:
+    - Query axis (rows): 100% ``_tsq`` suffix -- temperature-sensitive (TS)
+      query alleles of ESSENTIAL genes (essential genes can't be deleted
+      outright, so SGA uses a TS allele inactivated at restrictive
+      temperature). 5,346 rows / 4,939 unique query genes after collapse.
+    - Array axis (columns): 3,892 ``_dma`` (deletion-mutant array,
+      nonessential genes, 83%) + 792 ``_tsa`` (TS array alleles, essential
+      genes, 17%). 4,450 unique array genes after collapse.
+    - I.e. this file is the Costanzo-lab **ExE + ExN** sub-networks
+      restricted to an all-essential-gene query set -- it deliberately
+      excludes **NxN** (nonessential x nonessential), which is the single
+      largest sub-network by gene-pair count in the full genome-wide
+      network. Costanzo et al. 2016 itself reports essential genes
+      participate in ~5-fold more negative/positive interactions than
+      nonessential genes (hub-like), so an essential-only query set is
+      *expected* to show a higher hit rate than a genome-wide random
+      sample -- this is the primary reason this builder's empirical
+      **7.15%** (|eps| >= 0.08) is higher than the paper's genome-wide
+      negative-interaction rate (~2.4% = ~550k/~23M per the paper's
+      abstract, not the ~0.8% previously -- and incorrectly -- cited in
+      the task-definition doc, corrected there on 2026-07-22).
+    - Secondary contributor: the paper's own "intermediate confidence"
+      threshold is ``P < 0.05 AND |eps| > 0.08`` -- the magnitude cutoff
+      matches this builder's default exactly, but this local matrix has
+      **no companion p-value/FDR file**, so this builder cannot apply the
+      significance half of the paper's criterion and may pass some
+      magnitude-only noise that wouldn't survive ``P < 0.05``.
+  Bottom line: 7.15% (this builder, essential-query E-MAP subset, magnitude-
+  only threshold) and ~2.4% (paper, genome-wide, magnitude+significance
+  threshold) are both real numbers describing **different populations and
+  slightly different criteria** -- not two estimates of the same quantity.
+  If Task 2B's final label source ends up being this file, ~7%/93% (not
+  ~2.4%/97.6%) is the class distribution that should drive the majority-
+  class baseline and metric choice, and Task 2B's gene coverage should be
+  documented as "query side = essential genes only," not genome-wide.
 
 LABELING RULE (documented threshold choice, no independent significance/
 p-value recheck -- this matrix has no companion p-value file, only the
@@ -72,7 +97,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-RANK_CROSS_LAB = "/home/zhengz2/yeast-rank-cross-lab"  # READ-ONLY, never write here.
+RANK_CROSS_LAB = "/home/zhengz2/projects/yeast-rank-cross-lab"  # READ-ONLY, never write here.
 DEFAULT_MATRIX = f"{RANK_CROSS_LAB}/data/folder1_GI_raw/Genetic.interaction.score.tsv"
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -1,0 +1,61 @@
+\section{Method}
+
+\subsection{Problem Setting}
+% - 逐 (扰动pert, 读出readout, 上下文context) 三元组的二级级联分类：DE（是否有效应，Yes/No）
+%   → DIR（在DE命中子集里，效应方向）。两个任务角色映射不同，需要一张小表说清楚：
+%     T1（表达）：pert=被敲除ORF，readout=被测ORF（基因），context=数据集/敲除类型；
+%         DE答案句="differentially express"/"does not"；DIR="Increase"/"Decrease"。
+%     T2A（生长表型）：pert=被敲除ORF，readout=条件/screen（角色与T1互换——条件本身就是
+%         真实的多上下文轴，而不是像T1那样拿数据集当上下文，见 docs/task_definitions.md
+%         Task 2A"角色"一节）；DE答案句="causes a growth phenotype"/"does not"；
+%         DIR="Sensitive"/"Resistant"。
+% - 直接引用 PLAN.md Part B 那张"VCWorld(人)->Yeast-vecell"映射表的结构（药物->基因扰动，
+%   细胞系->菌株背景/条件，药物相似度->SGA遗传互作profile，基因KG->STRING/YEASTRACT等），
+%   写成本文自己的Table 1或复用其结构改写成英文。
+% - 训练/测试切分：按扰动子（不是按pair）30/70切分，检索只读train，避免同一扰动子的
+%   pair同时出现在train和test（docs/pipeline.md \S2, \S7"泄漏"）。
+
+\subsection{Pipeline: prepare / retrieve / prompt / infer}
+% 四阶段CLI（沿用VCWorld原始阶段名，见 docs/vcworld_pipeline.md \S3，本文改的是每一阶段
+% 背后的数据/知识后端，代码结构基本原样复用，见 docs/pipeline.md \S0图示）：
+% - prepare：Deleteome/Hillenmeyer矩阵按各自原生阈值直接阈值化出DE/DIR标签（不是从头跑
+%   差异分析——两个数据集都自带logFC/z-score+统计量），产出 {pert,readout,label,split} CSV。
+%   具体阈值/规模数字见 \S Task-Specific Data Processing。
+% - retrieve：从train里挖类比证据对，用 perturbagen_similarity.json（Costanzo SGA profile
+%   相关性）取相似扰动子、gene_sim/condition_sim取相似读出轴，按"共享扰动子/共享读出/两者
+%   都相似"分层组装，budget上限控制数量。**关键改动**（相对VCWorld）：证据对带真实train标签
+%   （`retrieved_pairs=[[pert,readout,label],...]`），修掉VCWorld原始random.choice贴假标签
+%   的bug（docs/vcworld_pipeline.md \S6 note 1）。
+% - prompt：模板把pert/readout描述+写死的assay上下文散文+Examples证据块+推理指令拼成完整
+%   prompt。T1用5步脚手架（function&analogue -> specificity -> downstream cascade via
+%   YEASTRACT TF符号 -> causal bridge -> final），T2A用4步脚手架（无YEASTRACT符号逻辑，
+%   换成"防御通路 vs 靶点/负调控子"逻辑，见 docs/task_definitions.md Task 2A"3.推断"）——
+%   要点名两套脚手架机制内容不同，不是同一套模板简单换字段。
+% - infer：本地开源LLM（vLLM），temperature=0.6/top_p=0.9对齐VCWorld论文设置，4模型规模
+%   梯度（Qwen3-4B/Qwen2.5-7B/Llama3.1-8B/Qwen2.5-14B）× 3 seed。
+
+\subsection{Yeast-Native Knowledge Assets}
+% 逐条列出四份自建知识资产（VCWorld原版的人类JSON全部弃用，见 docs/pipeline.md \S1表）：
+% - gene_desc.json：SGD描述+GO term+UniProt，7166基因，读出覆盖100%/扰动子99.93%。
+% - results_close_gene.json：STRING v12直接邻居/二跳邻居（combined_score>=700），5791基因，
+%   T1的gene-sim检索来源。
+% - perturbagen_similarity.json：Costanzo SGA遗传互作profile Pearson相关，top-25，覆盖
+%   Deleteome扰动子86%，T1/T2A共用的pert-sim检索来源。
+% - tf_targets.json：YEASTRACT逐TF查询，192 TF/179k带符号(activates/represses)边，是T1-DIR
+%   推理脚手架第3/4步的核心证据源。
+% - T2A另需condition_similarity.json（yp矩阵列-列相关，替代gene-sim角色）+context_desc.json
+%   （条件文本描述）。
+% 要点出这批资源"比人类对应资源更密、置信度更高"是PLAN.md反复强调的论点，写这节时要引用
+% docs/pipeline.md \S1表里的具体覆盖率数字支撑这个论点，不能只是空泛断言。
+
+\subsection{Task-Specific Data Processing}
+% T1（Deleteome, docs/pipeline.md \S2）：直接阈值化，不跑差异分析——DE: p<0.05 & |M|>0.766
+%   (Deleteome原生FC>1.7)标签1，从p>0.1里每扰动子抽200负例；DIR: sign(M)。产出规模：
+%   350,241行DE（正53,441/负296,800）、53,441行DIR（升35,234/降18,207）；1484扰动子->
+%   445 train/1039 test。
+% T2A（Hillenmeyer 2008, docs/pipeline.md \S8"Task2"段 + docs/task_definitions.md Task 2A）：
+%   yp_matrix_z_haphom阈值化出haphom_growth_{phenotype,direction}.csv，列
+%   {pert,context,label,split}（注意readout轴换成了context，不是基因）。
+% 两节都要点出各自的类别不均衡程度（T1a-DE正例~14%采样后/真实~0.6%；T2A-DIR抗25%/敏感75%），
+% 为Method部分之后Experiments要用macro-F1/MCC而非裸accuracy做主指标埋下依据
+% （docs/task_definitions.md各任务"6.怎么说明结果更好"一节已有现成论证，直接引用即可）。

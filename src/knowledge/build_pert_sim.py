@@ -9,7 +9,7 @@ perturbation" retrieval for the DE/DIR pipeline (Phase 3, PLAN.md).
 
 Source data (already local, per project note — NOT downloaded from
 thecellmap.org / boonelab in this run):
-    /home/zhengz2/yeast-rank-cross-lab/data/folder1_GI_raw/Genetic.interaction.score.tsv
+    /home/zhengz2/projects/yeast-rank-cross-lab/data/folder1_GI_raw/Genetic.interaction.score.tsv
     (124MB; documented by its own header as:
        row:    Query Strain ID   [standardSystematicName_libraryIdentifier]
        column: Array Strain ID   [standardSystematicName_libraryIdentifier]
@@ -67,7 +67,7 @@ Method
 Usage:
     python build_pert_sim.py [--top-n 25] [--min-overlap 50] \
         [--gi-file /path/to/Genetic.interaction.score.tsv] \
-        [--out /home/zhengz2/yeast-vecell/data/knowledge/perturbagen_similarity.json]
+        [--out /home/zhengz2/projects/yeast-vecell/data/knowledge/perturbagen_similarity.json]
 
 Idempotent: re-running with the same inputs/args overwrites the same output
 deterministically (no randomness anywhere in the pipeline).
@@ -81,8 +81,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DEFAULT_GI_FILE = "/home/zhengz2/yeast-rank-cross-lab/data/folder1_GI_raw/Genetic.interaction.score.tsv"
-DEFAULT_OUT = "/home/zhengz2/yeast-vecell/data/knowledge/perturbagen_similarity.json"
+DEFAULT_GI_FILE = "/home/zhengz2/projects/yeast-rank-cross-lab/data/folder1_GI_raw/Genetic.interaction.score.tsv"
+DEFAULT_OUT = "/home/zhengz2/projects/yeast-vecell/data/knowledge/perturbagen_similarity.json"
 
 
 def orf_of(label: str) -> str:

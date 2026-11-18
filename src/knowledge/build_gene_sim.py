@@ -17,7 +17,7 @@ stripping the "4932." taxon prefix — confirmed empirically (every node id matc
 
 This project has a local, byte-identical copy of the STRING v12.0 yeast links file
 (md5 0a477e579f8a3660a96094ab184d89d2) at:
-    /home/zhengz2/yeast-rank-cross-lab/data/external/string_4932_links.txt.gz
+    /home/zhengz2/projects/yeast-rank-cross-lab/data/external/string_4932_links.txt.gz
 The script reads that file in place by default. It only falls back to downloading
 from stringdb-downloads.org if the local copy is missing or fails a gzip integrity
 check (`gzip -t`).
@@ -85,8 +85,8 @@ FALLBACK_RAW_DIR = os.path.join(PROJECT_ROOT, "data", "knowledge", "raw")
 
 # Local canonical copy (byte-identical to the STRING download, md5 confirmed
 # 2026-07: 0a477e579f8a3660a96094ab184d89d2).
-LOCAL_STRING_LINKS = "/home/zhengz2/yeast-rank-cross-lab/data/external/string_4932_links.txt.gz"
-LOCAL_SGD_FEATURES = "/home/zhengz2/yeast-rank-cross-lab/data/SGD_features.tab"
+LOCAL_STRING_LINKS = "/home/zhengz2/projects/yeast-rank-cross-lab/data/external/string_4932_links.txt.gz"
+LOCAL_SGD_FEATURES = "/home/zhengz2/projects/yeast-rank-cross-lab/data/SGD_features.tab"
 
 STRING_TAXON = "4932"
 STRING_VERSION = "v12.0"

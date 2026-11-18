@@ -1,0 +1,60 @@
+\section{Introduction}
+
+% 动机段落占位（分3段展开，具体怎么分段/顺序留给写正文时再定）：
+%
+% 第1段——生物学问题+现有黑盒范式的局限：
+% - 预测基因扰动下细胞的转录组响应，对功能基因组学/药物靶点发现很关键，但湿实验昂贵、通量有限。
+% - 现有计算方法多是训练出来的黑盒深度模型（CPA/scVI/scGPT/STATE一类，见 PLAN.md Part C.5 末尾
+%   引用的对照方法清单），预测准但机制不可解释——预测"哪个基因会变化"容易，但说不出"为什么/
+%   通过什么通路"。
+%
+% 第2段——VCWorld 的白盒路线 + 它只验证了一个读出层：
+% - VCWorld（ICLR 2026, arXiv:2512.00306）提出另一条路：不训练神经网络，而是"结构化知识检索 +
+%   LLM因果推理"，逐个(扰动,基因,上下文)三元组走一套固定5步机制推理脚手架，在人类癌细胞系
+%   (Tahoe-100M/GeneTAK benchmark) 上预测药物扰动的差异表达(DE)/方向(DIR)，且性能随LLM推理能力
+%   单调提升（Llama3-8B 0.37 → Qwen2.5-14B 0.65 → Gemini-2.5-Flash 0.70，acc@C32，见 PLAN.md
+%   Part C.5），作者据此论证"这个任务吃的是推理能力，不是模式匹配"。
+% - 但VCWorld的验证局限在单一读出层——转录表达；细胞对扰动的响应本身是多层的（转录→蛋白质→
+%   通路活性→生长/适合度），这条白盒路线在"更下游、更综合"的读出层上是否同样有效，论文没有
+%   回答，也是任何"虚拟细胞"框架要成立必须回答的问题。
+%
+% 第3段——为什么酵母是检验这个问题的干净场景 + 本文做了什么：
+% - 酿酒酵母是模式生物：LLM预训练语料里生物学先验丰富；功能基因组学知识图谱
+%   （YEASTRACT TF→靶调控网络、STRING/BioGRID共功能网络、Costanzo SGA遗传互作profile）比人类
+%   更密、置信度更高（PLAN.md Part B 映射表），理论上应该让白盒推理"更有根基"；同时 Deleteome
+%   （Kemmeren et al. 2014）现成给出~1484个单基因敲除×~6000读出基因、带logFC+p值的干净
+%   (扰动,读出,标签)三元组，几乎是GeneTAK的直接替身，不需要重新跑差异分析。
+% - 本文把VCWorld移植到酵母（保留检索+5步推理脚手架，但把所有人类知识资产替换成酵母自建版本，
+%   并修掉VCWorld的一个已知bug——批量prompt里few-shot例子标签是random.choice随机贴的，本文
+%   把真实train标签一路带进检索，见 PLAN.md Part A 移植前注意点1），并行构造第二个任务轴——
+%   T2A"扰动→生长表型"（Hillenmeyer 2008 chemical-genomics，敲除在哪些条件下变敏感/变抗），
+%   与旗舰任务T1"扰动→表达"（Deleteome）在同一套pipeline/评测口径下直接对比。
+% - 核心发现（关键卖点）：T1（转录读出）随模型规模单调变好，复现VCWorld在人类数据上的结论；
+%   但T2（生长表型读出）不随规模变好，T2A-DIR（敏感/抗）四个模型全部挤在近随机区间——即
+%   "知识检索+LLM推理"能抓住"扰动→表达调控"的结构，但抓不住"扰动→生长适合度"，后者更依赖
+%   代谢通路的定量剂量效应，纯文本检索证据难以覆盖（RESULTS.md"分析"一节）。这是一个诚实的
+%   负结果，而不是简单的"移植成功"故事。
+
+\subsection*{Contributions}
+% 骨架阶段占位——正文只留 \item 数量结构，真实内容待写正文时再填（当前内容记在这条注释里，
+% 写作时展开，不要直接原样翻译，措辞待斟酌）：
+% 1. 把VCWorld的检索增强LLM因果推理框架移植到酵母，构建全套酵母原生知识资产（SGD/GO基因
+%    描述、STRING共功能网络、Costanzo SGA扰动子相似度、YEASTRACT TF->靶带符号调控网络，
+%    见 PLAN.md Part C Phase 2 / docs/pipeline.md S1），并修正VCWorld原始实现里few-shot
+%    证据标签随机化的bug（改为真实train标签，见 docs/vcworld_pipeline.md S6）。
+% 2. 提出双任务框架——T1"扰动->表达"（Deleteome，旗舰任务，直接对标VCWorld）与T2A"扰动->
+%    生长表型"（Hillenmeyer 2008，chemical-genomics式），共用同一套prepare/retrieve/prompt/
+%    infer pipeline与macro-F1/MCC评测口径（docs/task_definitions.md），使"同一套白盒推理
+%    框架在不同读出层上是否同样有效"第一次可以被直接、受控地比较。
+% 3. 4个本地开源LLM（Qwen2.5-14B/7B、Qwen3-4B、Llama3.1-8B）x 3-seed全量跑分（vLLM），
+%    报告T1随模型规模单调提升、复现VCWorld在人类数据上的规模趋势（RESULTS.md T1a/T1b表），
+%    并首次报告"生长表型读出不随模型规模提升"这一关键负结果（T2A-DE/DIR，RESULTS.md分析）。
+% 4. TODO：结合A/B prompt消融、标准基线+消融套件、训练型传统ML对照（GAT/GenKI/KGE-TGI/
+%    MultiXrank）与YEASTRACT TF->靶可解释性核查，提出对T1/T2差距的机制解释假说，讨论对
+%    未来虚拟细胞建模的启示——待 docs/task_results.md 里进行中的实验补充定稿后再具体展开。
+\begin{itemize}
+    \item TODO
+    \item TODO
+    \item TODO
+    \item TODO
+\end{itemize}

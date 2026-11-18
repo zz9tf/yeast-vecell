@@ -1,0 +1,36 @@
+\section{Related Work}
+
+\paragraph{VCWorld and white-box virtual cell models.}
+% VCWorld本身 \citep{vcworld2026}——检索增强+LLM因果推理预测人类癌细胞系(Tahoe-100M/GeneTAK)
+% 药物扰动的DE/DIR，5步机制推理脚手架，性能随模型规模单调提升。本文的直接移植对象，需要
+% 讲清楚VCWorld只验证了单一读出层（表达），以及本文修正的一个已知bug（few-shot标签随机化，
+% 见 docs/vcworld_pipeline.md \S6）。
+
+\paragraph{Black-box deep learning models for perturbation prediction.}
+% 与VCWorld同一个问题设定但训练神经网络的对照方法——CPA、scVI、STATE、scGPT一类
+% （PLAN.md Part C.5末尾提到，VCWorld论文里的专用baseline，非VCWorld的backbone）；
+% 讲清楚这些方法预测准但不可解释，是白盒路线要对比/要论证优势的对象。
+
+\paragraph{Yeast functional genomics network resources.}
+% STRING \citep{string}（本文gene-sim来源，v12 combined_score>=700）；BioGRID；
+% YEASTRACT \citep{yeastract}（TF->靶带符号调控网络，DIR推理的核心证据源）；
+% Costanzo SGA全基因组遗传互作网络 \citep{costanzo2016}（本文pert-sim来源，也是候选T2B任务
+% 的标签源）；SGD基因描述/别名表。讲清楚这批资源比人类对应资源（Reactome/UniProt/STRING）
+% 更密、置信度更高，是"酵母是检验白盒路线更干净场景"这个论点的证据。
+
+\paragraph{LLM reasoning for biological/genomic tasks.}
+% 除VCWorld外其他"LLM+检索/知识图谱做生物学推理"的先例——具体条目待补充调研（比如基因功能
+% 预测、通路富集解释、单细胞注释等任务上的LLM prompting/agent方法），用于定位VCWorld/本文
+% 在这个更大方法论谱系里的位置。TODO：需要补充具体引用，目前是占位。
+
+\paragraph{Chemogenomic fitness prediction (T2 readout's home literature).}
+% 生长表型/化学基因组学预测的经典方法——本文T2A对标的"传统监督ML对照"文献：矩阵分解
+% NRBdMF/SRMF \citep{yasuo2023,wang2017}（docs/task_definitions.md Task 2A"已知的pipeline
+% 变体"一节列出的训练型对照）、弹性网络/随机森林一类特征工程baseline（人类癌症药物敏感性
+% 预测GDSC/CCLE领域的公认下限对照）。讲清楚"扰动->适合度"预测本身是一个有成熟方法论传统的
+% 独立问题，不是本文自造的边缘任务；本文的贡献是把它接入同一套LLM推理框架做直接对比。
+
+\paragraph{Deleteome and Hillenmeyer datasets as the yeast counterpart of GeneTAK.}
+% Kemmeren et al. 2014 Deleteome \citep{kemmeren2014}——T1标签源；Hillenmeyer et al. 2008
+% chemical-genomics \citep{hillenmeyer2008}——T2A标签源。讲清楚两者分别提供"扰动->表达"和
+% "扰动->适合度"两种干净的(pert,readout,label)三元组，是本文能够构造双任务对比的数据基础。
