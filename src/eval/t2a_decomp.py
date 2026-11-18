@@ -9,10 +9,10 @@ import csv, json, re, statistics as st
 from collections import defaultdict, Counter
 
 import sys
-sys.path.insert(0, "/home/zhengz2/yeast-vecell/src/eval")
+sys.path.insert(0, "/home/zhengz2/projects/yeast-vecell/src/eval")
 from score import load_predictions, compute_metrics
 
-REPO = "/home/zhengz2/yeast-vecell"
+REPO = "/home/zhengz2/projects/yeast-vecell"
 T = f"{REPO}/data/task2"
 MODELS = ["qwen14b", "qwen7b", "qwen4b", "llama8b"]
 SEEDS = [0, 1, 2]

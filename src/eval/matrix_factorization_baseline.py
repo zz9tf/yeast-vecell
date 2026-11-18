@@ -50,7 +50,7 @@ from score import compute_metrics  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(HERE))
 TASK2_DIR = os.path.join(REPO, "data", "task2")
-RANK_CROSS_LAB = "/home/zhengz2/yeast-rank-cross-lab"
+RANK_CROSS_LAB = "/home/zhengz2/projects/yeast-rank-cross-lab"
 RAW_MATRIX = f"{RANK_CROSS_LAB}/data/folder8_raw/yp_matrix_z_haphom_20221025.txt"
 
 DE_CSV = os.path.join(TASK2_DIR, "hillenmeyer_phenotype.csv")

@@ -16,7 +16,7 @@
 - `main.tex` 用 `\usepackage[submission]{aaai2027}`（匿名投稿模式，自动隐藏作者+加匿名版权页脚）
 
 **接入方法**：把 `aaai2027.sty`、`aaai2027.bst`、`build.sh` 从
-`/home/zhengz2/yeast-rank-cross-lab/imbalance_study/paper/` 复制到本目录，`main.tex` 的
+`/home/zhengz2/projects/yeast-rank-cross-lab/imbalance_study/paper/` 复制到本目录，`main.tex` 的
 `\documentclass`/`\usepackage` 那两行按那边 `main.tex` 的实际写法替换即可，不需要重新联网下载。
 如果投稿年份变了（AAAI-2027 → 更新版本），才需要去官方渠道重新拿 kit。
 

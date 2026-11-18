@@ -4,7 +4,7 @@
 # main matrix / A-B branches (retrieval itself is unchanged by these ablations,
 # only the prompt template + description lookups differ).
 set -e
-cd /home/zhengz2/yeast-vecell/src/cli_pipeline
+cd /home/zhengz2/projects/yeast-vecell/src/cli_pipeline
 PY=/usr/bin/python3.12
 R=../../data/runs; T=../../data/task2; K=../../data/knowledge; AB=../../data/ab
 EMPTY=$AB/_empty_desc.json

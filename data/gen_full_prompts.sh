@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/zhengz2/yeast-vecell/src/cli_pipeline
+cd /home/zhengz2/projects/yeast-vecell/src/cli_pipeline
 PY=/usr/bin/python3.12; R=../../data/runs; T=../../data/task2; K=../../data/knowledge
 for s in 0 1 2; do
   echo "===== seed $s $(date +%H:%M:%S) ====="

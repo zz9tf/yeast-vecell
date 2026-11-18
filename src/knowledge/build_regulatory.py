@@ -39,7 +39,7 @@ YEASTRACT itself does not expose a plain TF list either (the "TF-Consensus
 List" page only lists the ~128 TFs with a distilled DNA motif -- a subset).
 We derive our candidate TF universe locally + reproducibly from S. cerevisiae
 GO Cellular Component/Function annotations (already mirrored locally):
-    /home/zhengz2/yeast-rank-cross-lab/data/external/sgd_go_annotations.gaf.gz
+    /home/zhengz2/projects/yeast-rank-cross-lab/data/external/sgd_go_annotations.gaf.gz
 using GO terms for classical sequence-specific DNA-binding TF activity:
     GO:0003700  DNA-binding transcription factor activity
     GO:0000981  DNA-binding TF activity, RNA polymerase II-specific
@@ -52,7 +52,7 @@ above terms (DAL82, GCR2, HAP4, IME1, IXR1, MOT2, MSS11), and 3 classic
 general co-regulators that act through DNA-binding partners rather than
 binding DNA themselves but are heavily documented in YEASTRACT with sign
 (TUP1, CYC8/SSN6, GAL80). ORF resolution uses:
-    /home/zhengz2/yeast-rank-cross-lab/data/SGD_features.tab
+    /home/zhengz2/projects/yeast-rank-cross-lab/data/SGD_features.tab
 Entries that are protein-COMPLEX GO annotations (identifiers like "CPX-684",
 10 of them) are dropped (not single genes). Entries that resolve to no ORF
 in SGD_features.tab (3 of them: MAL23/MAL43/MAL63, redundant MAL-locus
@@ -61,7 +61,7 @@ are dropped too. Net candidate TF count: see stderr log / --stats.
 
 Usage:
     python build_regulatory.py [--batch-size 20] [--sleep 1.0] \
-        [--out /home/zhengz2/yeast-vecell/data/knowledge/tf_targets.json] \
+        [--out /home/zhengz2/projects/yeast-vecell/data/knowledge/tf_targets.json] \
         [--cache-dir /tmp/.../yeastract_cache]   # raw HTML cached so re-runs are cheap/idempotent
 
 Idempotent: re-running with an intact --cache-dir re-parses cached HTML
@@ -79,10 +79,10 @@ from pathlib import Path
 
 import requests
 
-GAF_PATH = "/home/zhengz2/yeast-rank-cross-lab/data/external/sgd_go_annotations.gaf.gz"
-SGD_FEATURES_PATH = "/home/zhengz2/yeast-rank-cross-lab/data/SGD_features.tab"
-DEFAULT_OUT = "/home/zhengz2/yeast-vecell/data/knowledge/tf_targets.json"
-DEFAULT_CACHE = "/home/zhengz2/yeast-vecell/data/knowledge/.yeastract_cache"
+GAF_PATH = "/home/zhengz2/projects/yeast-rank-cross-lab/data/external/sgd_go_annotations.gaf.gz"
+SGD_FEATURES_PATH = "/home/zhengz2/projects/yeast-rank-cross-lab/data/SGD_features.tab"
+DEFAULT_OUT = "/home/zhengz2/projects/yeast-vecell/data/knowledge/tf_targets.json"
+DEFAULT_CACHE = "/home/zhengz2/projects/yeast-vecell/data/knowledge/.yeastract_cache"
 
 YEASTRACT_URL = "https://www.yeastract.com/findregulated.php"
 
